@@ -5,6 +5,7 @@ import Assessment from './pages/Assessment';
 import MCQCompletion from './pages/MCQCompletion';
 import OpenEndedQuestions from './pages/OpenEndedQuestions';
 import Results from './pages/Results';
+
 function App() {
   return (
     <Router>
@@ -18,5 +19,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;

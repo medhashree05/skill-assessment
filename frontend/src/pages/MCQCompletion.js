@@ -7,10 +7,7 @@ function MCQCompletion() {
   const location = useLocation();
   const questions = location.state?.questions || [];
   const userInfo = location.state?.userInfo || {};
-    
-
   
-  // ✅ Destructure everything needed to restore assessment state
  const {
   answers = {},
   totalQuestions = 40,
@@ -22,10 +19,6 @@ function MCQCompletion() {
   categoryScores = {}
 } = location.state || {};
 
-
-
-
-  // ✅ Go back with all saved state
   const handleGoBack = () => {
   navigate('/assessment', {
     state: {
@@ -44,8 +37,8 @@ function MCQCompletion() {
 };
 const generateOpenEndedQuestions = async () => {
   const payload = {
-    user_profile: userInfo,  // must have age, education_level, field, interests[], aspirations
-    mcq_scores: categoryScores  // scores per pillar/category
+    user_profile: userInfo,  
+    mcq_scores: categoryScores  
   };
 
   try {

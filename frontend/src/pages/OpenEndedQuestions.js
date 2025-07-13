@@ -8,16 +8,17 @@ function OpenEndedQuestions() {
   const navigate = useNavigate();
 
   const userInfo = location.state?.userInfo || {};
+    
   const {
-    mcqAnswers = {},
+    mcqAnswers = {}, 
     totalMCQs = 0,
     totalScore = 0,
     categoryScores = {},
     questions = []
   } = location.state || {};
+  
   const [openEndedScores, setOpenEndedScores] = useState([]);
 
-  // Map frontend userInfo and categoryScores to backend payload format
   function mapToBackendPayload(userInfo, categoryScores) {
     return {
       user_profile: {

@@ -7,18 +7,21 @@ import { IoPeopleOutline } from "react-icons/io5";
 import { GiHealthPotion } from "react-icons/gi";
 import { MdFamilyRestroom } from "react-icons/md";
 import { IoInformationCircleOutline } from "react-icons/io5";
+
 function Results() {
+  
   const location = useLocation();
   const navigate = useNavigate();
   const userInfo = location.state?.userInfo || {};
   console.log(userInfo);
-  const skillIcons = {
+  const skillIcons = { 
   "Cognitive & Creative Skills": <LuBrain />,
   "Work & Professional Behavior": <MdOutlineWorkOutline />,
   "Emotional & Social Competence": <IoPeopleOutline />,
   "Personal Management & Wellness": <GiHealthPotion />,
   "Family & Relationships": <MdFamilyRestroom />
 };
+
  const {
   mcqAnswers = {},
   openEndedResponses = {},
@@ -28,7 +31,9 @@ function Results() {
   categoryScores = {},
   questions = [],
 } = location.state || {};
+
 console.log(categoryScores);
+
 const openEndedCategoryScores = {};
 openEndedScores.forEach(scoreObj => {
   const { category, score } = scoreObj;
@@ -44,15 +49,15 @@ Object.entries(openEndedCategoryScores).forEach(([category, scores]) => {
   openEndedCategoryAverages[category] = avg;
 });
 
-// Average total open-ended score
+
 const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, b) => a + b, 0) / (Object.keys(openEndedCategoryAverages).length || 1);
 
-  // Calculate percentage
+ 
   const mcqpercentage = totalMCQs > 0 ? Math.round((totalScore / 160) * 70) : 0;
   const open_ended_percentage = totalMCQs > 0 ? Math.round((totalScore / 160) * 30) : 0;
   const percentage = mcqpercentage + open_ended_percentage;
   
-  // Determine performance level
+
   const getPerformanceLevel = (score) => {
     if (score >= 80) return 'Excellent';
     if (score >= 60) return 'Good';
@@ -67,7 +72,6 @@ const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, 
     if (score >= 40) return 'Bottom 40%';
     return 'Bottom 20%';
   };
-  
   
 
 // Parse percentile number from string like 'Top 10%', 'Bottom 40%'
@@ -104,7 +108,12 @@ const barMessage = `You're ahead of ${percentileNumber}% of students who took th
     return strongestSkill || 'Strategic Thinking';
   };
   const strongestSkill = getStrongestSkill();
-const strongestSkillIcon = skillIcons[strongestSkill] || "💜"; // fallback emoji
+const normalizedSkill = strongestSkill.trim();
+const strongestSkillIcon = skillIcons[normalizedSkill] || "💜";
+
+
+console.log("Strongest Skill:", strongestSkill);
+console.log("Available Keys in skillIcons:", Object.keys(skillIcons));
 
 
   // Convert categoryScores to chart data

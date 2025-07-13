@@ -11,6 +11,7 @@ const loadQuestions = async ({
   setLoading,
   setError
 }) => {
+     
   try {
     const response = await fetch('/questions.csv');
     if (!response.ok) throw new Error('Failed to load questions');
@@ -71,14 +72,11 @@ const loadQuestions = async ({
   }
 };
 
-
 function Assessment() {
   const location = useLocation();
   const navigate = useNavigate();
   const [hasRestoredState, setHasRestoredState] = useState(false);
- const userInfo = location.state?.userInfo || {};
-
-  
+  const userInfo = location.state?.userInfo || {};
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState('');
@@ -89,10 +87,10 @@ function Assessment() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [startTime] = useState(Date.now());
-  const [remainingTime, setRemainingTime] = useState(20 * 60); // 20 minutes in seconds
+  const [remainingTime, setRemainingTime] = useState(20 * 60); 
   const [assessmentComplete, setAssessmentComplete] = useState(false);
 
-  // Countdown timer
+ 
   useEffect(() => {
     const timer = setInterval(() => {
       setRemainingTime(prevTime => {
@@ -107,7 +105,7 @@ function Assessment() {
     return () => clearInterval(timer);
   }, []);
 
-  // Load questions
+ 
   useEffect(() => {
   loadQuestions({
     setQuestions,
@@ -127,7 +125,7 @@ if (!hasRestoredState && !loading && questions.length > 0 && location.state) {
     setCurrentQuestionIndex(previousIndex);
     setRemainingTime(previousRemainingTime);
 
-    // ✅ Fix this block to restore progress properly
+    
     if (Object.keys(previousProgress).length > 0) {
       setCategoryProgress(previousProgress);
       setCategories(Object.keys(previousProgress));

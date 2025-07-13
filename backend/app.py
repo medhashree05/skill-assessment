@@ -6,18 +6,16 @@ import pandas as pd
 import google.generativeai as genai
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
-import json  # For parsing JSON from response text
+import json  
 import re
 
-
-load_dotenv()  # Load .env variables
+load_dotenv() 
 
 app = FastAPI()
 
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000"
-    # add other origins if your frontend runs elsewhere
 ]
 
 app.add_middleware(
@@ -28,7 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure Gemini API
+
 API_KEY = os.getenv("GOOGLE_API_KEY")
 if not API_KEY:
     raise Exception("Missing GOOGLE_API_KEY in environment variables")
@@ -76,7 +74,7 @@ You are an expert skill assessor tasked with generating 3 personalized open-ende
 1. Cognitive & Creative Skills  
 2. Work & Professional Behavior  
 3. Emotional & Social Competence  
-4. Learning & Self Management  
+4. Personal Management & Wellness  
 5. Family & Relationships
 
 Instructions:
@@ -98,7 +96,7 @@ MCQ Scores by Category (0–100):
   "Cognitive & Creative Skills": {req.mcq_scores.Cognitive_and_Creative_Skills},
   "Work & Professional Behavior": {req.mcq_scores.Work_and_Professional_Behavior},
   "Emotional & Social Competence": {req.mcq_scores.Emotional_and_Social_Competence},
-  "Learning & Self Management": {req.mcq_scores.Learning_and_Self_Management},
+  "Personal Management & Wellness": {req.mcq_scores.Learning_and_Self_Management},
   "Family & Relationships": {req.mcq_scores.Family_and_Relationships}
 }}
 

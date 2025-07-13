@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Assessment from './Assessment'; // Import the Assessment component
+import Assessment from './Assessment'; 
 import './Home.css';
 import { useNavigate } from 'react-router-dom';
 import { LuBrain } from "react-icons/lu";
@@ -7,10 +7,8 @@ import { MdOutlineWorkOutline } from "react-icons/md";
 import { IoPeopleOutline } from "react-icons/io5";
 import { GiHealthPotion } from "react-icons/gi";
 import { MdFamilyRestroom } from "react-icons/md";
-
-
-function Home() {
   
+function Home() {
   const [formData, setFormData] = useState({
   fullName: '',
   age: '',
@@ -22,7 +20,6 @@ function Home() {
   careerGoals: '',
   careerGoalsOther: ''
 });
-
 
   const navigate = useNavigate();
 
@@ -37,7 +34,7 @@ function Home() {
    const handleSubmit = (e) => {
   e.preventDefault();
 
-  // Prepare values: use manual text if "other" is selected
+  
   const professionalDomainValue =
     formData.professionalDomain === 'other'
       ? formData.professionalDomainOther.trim()
@@ -48,7 +45,7 @@ function Home() {
       ? formData.careerGoalsOther.trim()
       : formData.careerGoals;
 
-  // Basic validation
+ 
   if (!formData.fullName || !formData.age || !formData.educationLevel || !professionalDomainValue || !careerGoalsValue) {
     alert('Please fill in all required fields');
     return;
@@ -64,10 +61,6 @@ function Home() {
 
   navigate('/assessment', { state: { userInfo: finalFormData } });
 };
-
-
-  // If assessment should be shown, render Assessment component
- 
 
   return (
     <div className="container">
