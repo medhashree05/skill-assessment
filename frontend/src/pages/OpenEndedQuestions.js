@@ -131,6 +131,7 @@ function OpenEndedQuestions() {
   const handleSubmit = async () => {
   try {
     const scores = await scoreOpenEndedResponses(userInfo, openEndedQuestions, responses);
+    console.log("open_ended_scores",scores);
     setOpenEndedScores(scores); // optional if you want to show before navigating
 
     navigate('/results', {

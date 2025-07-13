@@ -53,8 +53,8 @@ Object.entries(openEndedCategoryScores).forEach(([category, scores]) => {
 const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, b) => a + b, 0) / (Object.keys(openEndedCategoryAverages).length || 1);
 
  
-  const mcqpercentage = totalMCQs > 0 ? Math.round((totalScore / 160) * 70) : 0;
-  const open_ended_percentage = totalMCQs > 0 ? Math.round((totalScore / 160) * 30) : 0;
+  const mcqpercentage = totalMCQs > 0 ? Math.round((totalScore/160) * 70) : 0;
+  const open_ended_percentage = totalMCQs > 0 ? Math.round((totalScore/50) * 30) : 0;
   const percentage = mcqpercentage + open_ended_percentage;
   
 
@@ -72,6 +72,22 @@ const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, 
     if (score >= 40) return 'Bottom 40%';
     return 'Bottom 20%';
   };
+   const getSalaryRangeINR = (score) => {
+  if (score >= 80) return '₹12L – ₹16L';
+  if (score >= 60) return '₹9L – ₹12L';
+  if (score >= 40) return '₹6L – ₹9L';
+  return '₹3L – ₹6L';
+};
+
+const getSalaryRangeUSD = (score) => {
+  if (score >= 80) return '$80k – $100k';
+  if (score >= 60) return '$65k – $80k';
+  if (score >= 40) return '$50k – $65k';
+  return '$30k – $45k';
+};
+
+const salaryRangeINR = getSalaryRangeINR(percentage);
+const salaryRangeUSD = getSalaryRangeUSD(percentage);
   
 
 // Parse percentile number from string like 'Top 10%', 'Bottom 40%'
@@ -125,10 +141,7 @@ console.log("Available Keys in skillIcons:", Object.keys(skillIcons));
 
 
   // Bar chart data from actual category scores
-  const barChartData = Object.entries(categoryScores).map(([category, score]) => ({
-  label: category,
-  value: Math.round((score / 160) * 100) // Again assuming total = 3
-}));
+  const barChartData =[];
 
 
 const skillsData = [];
@@ -140,7 +153,7 @@ const allCategories = new Set([
 
 allCategories.forEach((category) => {
   const mcqScore = categoryScores[category]
-  ? (categoryScores[category] / 3) * 100
+  ? (categoryScores[category] )
   : 0;
 
   const openScore = openEndedCategoryAverages[category] || 0;
@@ -150,6 +163,10 @@ allCategories.forEach((category) => {
     skill: category,
     percentage: weightedScore,
   });
+  barChartData.push({
+    label:category,
+    value:weightedScore,
+  })
 });
 
 
@@ -176,6 +193,8 @@ allCategories.forEach((category) => {
       month: 'long',
       day: 'numeric'
     });
+   
+
 
     const strongestSkill = getStrongestSkill();
     const marketPercentile = getMarketPercentile(percentage);
@@ -525,10 +544,11 @@ allCategories.forEach((category) => {
                         <div class="label">${getPerformanceLevel(percentage)}</div>
                     </div>
                     <div class="performance-card salary">
-                        <h3>Salary Range</h3>
-                        <div class="value">$45k - $65k</div>
-                        <div class="label">Market Range</div>
-                    </div>
+  <h3>Salary Range</h3>
+  <div class="value">${salaryRangeUSD} / ${salaryRangeINR}</div>
+  <div class="label">US / India Market Range</div>
+</div>
+
                 </div>
             </div>
             
@@ -609,7 +629,7 @@ allCategories.forEach((category) => {
         <h4 style="font-size:16px;font-weight:600;color:#333;">Earning Potential</h4>
       </div>
       <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        Your skill profile suggests a market salary range of <strong>$45k - $65k</strong>, reflecting your current competency level and growth trajectory.
+        Your skill profile suggests a market salary range of <strong>${salaryRangeINR}</strong>, reflecting your current competency level and growth trajectory.
       </div>
     </div>
 
@@ -750,11 +770,11 @@ allCategories.forEach((category) => {
             <h3>Your Performance vs Market Standards</h3>
             <p>Comparing your skills with advanced level professionals</p>
           </div>
-          <div className="bar-chart-container-2">
-  <div className="bar-chart-2">
+          <div className="bar-chart-container">
+  <div className="bar-chart">
     {barChartData.map((item, index) => (
-      <div key={index} className="bar-chart-item-2">
-        <div className="bar-chart-bar-2">
+      <div key={index} className="bar-chart-item">
+        <div className="bar-chart-bar">
           <div 
             className="bar-chart-fill-user" 
             style={{ height: `${item.value}%` }}
@@ -764,7 +784,7 @@ allCategories.forEach((category) => {
             style={{ height: `${item.market || 60}%` }}  // Static or dynamic market score
           ></div>
         </div>
-        <div className="bar-chart-label-2">{item.label.split(' ')[0]}</div>
+        <div className="bar-chart-label">{item.label.split(' ')[0]}</div>
       </div>
     ))}
   </div>
@@ -817,25 +837,38 @@ allCategories.forEach((category) => {
             <p>Estimated improvement trajectory</p>
           </div>
           <div className="growth-chart">
-            <div className="chart-placeholder">
-              <div className="growth-line"></div>
-              <div className="growth-points">
-                <div className="point start-point"></div>
-                <div className="point mid-point"></div>
-                <div className="point end-point"></div>
-              </div>
-            </div>
-            <div className="growth-timeline">
-              <span>Current</span>
-              <span>3 Months</span>
-              <span>6 Months</span>
-              <span>12 Months</span>
-            </div>
-            <div className="growth-insight">
-              <span className="insight-icon">💡</span>
-              <p>With focused development, you could improve by up to 25 points in the next year!</p>
-            </div>
-          </div>
+  <div className="chart-placeholder">
+    <div className="growth-line"></div>
+    <div className="growth-points">
+      <div className="point start-point"></div>
+
+      <div className="point-wrapper">
+        <span className="growth-label">+6</span>
+        <div className="point mid-point"></div>
+      </div>
+
+      <div className="point-wrapper">
+        <span className="growth-label">+9</span>
+        <div className="point mid-point"></div>
+      </div>
+
+      <div className="point end-point"></div>
+    </div>
+  </div>
+
+  <div className="growth-timeline">
+    <span>Current</span>
+    <span>3 Months</span>
+    <span>6 Months</span>
+    <span>12 Months</span>
+  </div>
+
+  <div className="growth-insight">
+    <span className="insight-icon">💡</span>
+    <p>With focused development, you could improve by up to 25 points in the next year!</p>
+  </div>
+</div>
+
         </div>
 
         <div className="analysis-card">
@@ -866,7 +899,7 @@ allCategories.forEach((category) => {
                   <span className="salary-desc">Years Experience Equivalent</span>
                 </div>
                 <div className="salary-item">
-                  <span className="salary-label">$45k</span>
+                  <span className="salary-label">{salaryRangeINR}</span>
                   <span className="salary-desc">Market Salary Range</span>
                 </div>
               </div>

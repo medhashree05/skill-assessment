@@ -97,6 +97,7 @@
 
 .percentile-display, .skill-display {
   text-align: center;
+  align-items: center;
 }
 
 .percentile-icon {
@@ -167,8 +168,72 @@
 }
 
 .bar-chart-container {
+  padding: 20px;
+  background: #f9f9fb;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.bar-chart {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 200px;
+  position: relative;
+  padding-bottom: 30px;
+}
+
+.bar-chart-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 60px;
   position: relative;
 }
+
+.bar-chart-bar {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.bar-chart-fill-user,
+.bar-chart-fill-market {
+  width: 40%;
+  transition: height 0.6s ease;
+  border-radius: 6px 6px 0 0;
+}
+
+.bar-chart-fill-user {
+  background-color: #667eea;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+.bar-chart-fill-market {
+  background-color: #f39c12;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.bar-chart-label {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #555;
+  text-align: center;
+  max-width: 70px;
+  word-break: break-word;
+}
+
+.bar-chart-container {
+  position: relative;
+}
+
 
 .bar-chart {
   display: flex;
@@ -238,7 +303,7 @@
 }
 
 .market-color {
-  background: #d1d5db;
+  background: #f39c12;
 }
 
 .skills-list {
@@ -295,7 +360,7 @@
   position: relative;
 }
 .percentile-bar-container{
-  margin-left: 115px;
+  margin-left: auto;
 }
 
 .percentage-fill {
@@ -354,7 +419,7 @@
   border-radius: 10px;
   overflow: visible;
   width: 100%;
-  max-width: 300px;
+  max-width: 600px;
 }
 
 .percentile-bar-bg {
@@ -587,12 +652,16 @@
 
 .growth-points {
   position: absolute;
-  top: 50%;
+  top: 58%;
   left: 10%;
   right: 10%;
   transform: translateY(-50%);
   display: flex;
   justify-content: space-between;
+}
+.point-wrapper{
+  
+  transform: translateY(-61%);
 }
 
 .point {
@@ -806,6 +875,10 @@
     grid-template-columns: 1fr;
     gap: 1rem;
   }
+  .percentile-display, .skill-display {
+  text-align: center;
+  align-items: center;
+}
   
   .analysis-card {
     padding: 1.5rem;
