@@ -606,89 +606,123 @@ allCategories.forEach((category) => {
                         </ul>
                     </div>
                 </div>
-                <!-- Market Intelligence Section -->
+<!-- Section 4: Industry Comparison & Peer Benchmark -->
 <div class="section">
-  <div class="section-header" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #e9ecef;">
+  <div class="section-header">
     <span>📊</span>
-    <h2 style="color:#667eea;font-size:20px;font-weight:600;">Market Intelligence</h2>
+    <h2>Industry Comparison & Peer Benchmark</h2>
   </div>
-  <div class="insights-section" style="background:#ffece6;padding:20px;border-radius:10px;margin-top:10px;">
-    <div class="insight-card" style="background:white;padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid #ff6b6b;">
-      <div class="insight-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span>📉</span>
-        <h4 style="font-size:16px;font-weight:600;color:#333;">Industry Position</h4>
-      </div>
-      <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        Based on current market data, you rank in the <strong>Bottom 40%</strong> of professionals in your field. This positions you as <strong>developing</strong> in today’s job market.
-      </div>
-    </div>
-
-    <div class="insight-card" style="background:white;padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid #f093fb;">
-      <div class="insight-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span>💰</span>
-        <h4 style="font-size:16px;font-weight:600;color:#333;">Earning Potential</h4>
-      </div>
-      <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        Your skill profile suggests a market salary range of <strong>${salaryRangeINR}</strong>, reflecting your current competency level and growth trajectory.
-      </div>
-    </div>
-
-    <div class="insight-card" style="background:white;padding:15px;border-radius:8px;margin-bottom:0;border-left:4px solid #4ecdc4;">
-      <div class="insight-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+  <div class="insights-section">
+    <div class="insight-card">
+      <div class="insight-header">
         <span>📈</span>
-        <h4 style="font-size:16px;font-weight:600;color:#333;">Industry Trends</h4>
+        <h4>Your Peer Standing</h4>
       </div>
-      <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        <ul style="padding-left:20px;list-style-type:disc;">
-          <li>Remote work skills are increasingly valued</li>
-          <li>Digital literacy is essential across all roles</li>
-          <li>Soft skills command premium salaries</li>
-          <li>Continuous learning is a key differentiator</li>
-        </ul>
+      <div class="insight-text">
+        You rank in the <strong>${marketPercentile}</strong> compared to others in your domain. This means you're currently ahead of <strong>${percentileNumber}%</strong> of learners from similar backgrounds.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-header">
+        <span>🔍</span>
+        <h4>Skill-Job Market Fit</h4>
+      </div>
+      <div class="insight-text">
+        Your strengths align with the most in-demand traits like analytical thinking and adaptability, based on current reports from WEF, NASSCOM, and LinkedIn.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-header">
+        <span>📚</span>
+        <h4>Benchmark Source</h4>
+      </div>
+      <div class="insight-text">
+        Benchmarks are derived from real-world aggregated peer test data and global workforce studies. (Future version will use live backend updates.)
       </div>
     </div>
   </div>
 </div>
 
-<!-- 90-Day Development Plan Section -->
+<!-- Section 5: Personalized Roadmap -->
 <div class="section">
-  <div class="section-header" style="display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid #e9ecef;">
+  <div class="section-header">
     <span>🧭</span>
-    <h2 style="color:#667eea;font-size:20px;font-weight:600;">90-Day Development Plan</h2>
+    <h2>Personalized Roadmap / Next Steps</h2>
   </div>
-  <div class="insights-section" style="background:#e3f2fd;padding:20px;border-radius:10px;margin-top:10px;">
-    <div class="insight-card" style="background:white;padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid #1e88e5;">
-      <div class="insight-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span>📅</span>
-        <h4 style="font-size:16px;font-weight:600;color:#333;">Days 1–30</h4>
+  <div class="insights-section">
+    <div class="insight-card">
+      <div class="insight-header">
+        <span>🛠️</span>
+        <h4>Action Plan by Skill Cluster</h4>
       </div>
-      <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        Focus on strategic thinking — Take online courses, practice daily, and seek feedback from peers.
-      </div>
-    </div>
-
-    <div class="insight-card" style="background:white;padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid #43a047;">
-      <div class="insight-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span>🔨</span>
-        <h4 style="font-size:16px;font-weight:600;color:#333;">Days 31–60</h4>
-      </div>
-      <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        Apply your strategic thinking in real projects while continuing to develop weaker areas.
-      </div>
-    </div>
-
-    <div class="insight-card" style="background:white;padding:15px;border-radius:8px;margin-bottom:0;border-left:4px solid #f9a825;">
-      <div class="insight-header" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-        <span>🤝</span>
-        <h4 style="font-size:16px;font-weight:600;color:#333;">Days 61–90</h4>
-      </div>
-      <div class="insight-text" style="font-size:14px;color:#666;line-height:1.5;">
-        Seek mentorship, join professional communities, and prepare for reassessment to track progress.
+      <div class="insight-text">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
+          <thead>
+            <tr style="background: #e3e9f7; text-align: left;">
+              <th style="padding: 8px; border: 1px solid #ccc;">Skill Cluster</th>
+              <th style="padding: 8px; border: 1px solid #ccc;">Your Level</th>
+              <th style="padding: 8px; border: 1px solid #ccc;">Suggested Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ccc;">Emotional Competence</td>
+              <td style="padding: 8px; border: 1px solid #ccc;">Weak</td>
+              <td style="padding: 8px; border: 1px solid #ccc;">Try journaling, group work, weekly reflection</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ccc;">Self-Management</td>
+              <td style="padding: 8px; border: 1px solid #ccc;">Moderate</td>
+              <td style="padding: 8px; border: 1px solid #ccc;">Use Notion, time-blocking, track productivity</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ccc;">Professional Behavior</td>
+              <td style="padding: 8px; border: 1px solid #ccc;">Strong</td>
+              <td style="padding: 8px; border: 1px solid #ccc;">Mentor juniors, share project case studies</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Section 6: Recommended Resources -->
+<div class="section">
+  <div class="section-header">
+    <span>📌</span>
+    <h2>Recommended Resources</h2>
+  </div>
+  <div class="insights-section">
+    <div class="insight-card">
+      <div class="insight-header">
+        <span>🎓</span>
+        <h4>Courses</h4>
+      </div>
+      <div class="insight-text">
+        Explore free or premium learning paths on platforms like <strong>LinkedIn Learning</strong>, <strong>Coursera</strong>, or <strong>edX</strong> based on your weakest skill area.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-header">
+        <span>🛠️</span>
+        <h4>Tools & Apps</h4>
+      </div>
+      <div class="insight-text">
+        Use tools like <strong>Notion</strong>, <strong>Todoist</strong>, and <strong>Reflectly</strong> for journaling, planning, and behavior tracking.
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-header">
+        <span>🤝</span>
+        <h4>Activities</h4>
+      </div>
+      <div class="insight-text">
+        Join communities, attend debates, try peer mentoring or volunteering to improve emotional and work behavior skills.
+      </div>
+    </div>
+             </div>
+            </div>
             </div>
         </div>
     </div>

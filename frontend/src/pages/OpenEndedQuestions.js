@@ -40,7 +40,6 @@ function OpenEndedQuestions() {
     };
   }
 
-  // State to hold open-ended questions fetched from backend
   const [openEndedQuestions, setOpenEndedQuestions] = useState([]);
   // User responses keyed by question index
   const [responses, setResponses] = useState({});

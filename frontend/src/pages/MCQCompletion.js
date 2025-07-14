@@ -8,7 +8,7 @@ function MCQCompletion() {
   const questions = location.state?.questions || [];
   const userInfo = location.state?.userInfo || {};
   
- const {
+  const {
   answers = {},
   totalQuestions = 40,
   currentCategory = '',
@@ -35,6 +35,8 @@ function MCQCompletion() {
     window.location.reload();
   }, 0); 
 };
+
+
 const generateOpenEndedQuestions = async () => {
   const payload = {
     user_profile: userInfo,  
@@ -61,8 +63,6 @@ const generateOpenEndedQuestions = async () => {
 };
 
 
-
-  // ✅ Proceed to open-ended section with MCQ responses
 const handleProceedToOpenEnded = async () => {
   const generatedQuestions = await generateOpenEndedQuestions();
 
