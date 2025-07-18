@@ -48,7 +48,7 @@ function OpenEndedQuestions() {
       try {
         const payload = mapToBackendPayload(userInfo, categoryScores);
 
-        const response = await fetch('http://localhost:8000/generate_open_ended_questions', {
+        const response = await fetch('https://skill-assessment-n1dm.onrender.com/generate_open_ended_questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -106,7 +106,7 @@ function OpenEndedQuestions() {
     answers
   };
 
-  const response = await fetch('http://localhost:8000/score_open_ended_responses', {
+  const response = await fetch('https://skill-assessment-n1dm.onrender.com/score_open_ended_responses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
