@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './Assessment.css';
 import Papa from 'papaparse';
-
+ 
 const loadQuestions = async ({
   setQuestions,
   setCategories,
@@ -11,12 +11,11 @@ const loadQuestions = async ({
   setLoading,
   setError
 }) => {
-     
+              
   try {
     const response = await fetch('/questions.csv');
     if (!response.ok) throw new Error('Failed to load questions');
     const csvText = await response.text();
-
     const parsedData = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
@@ -101,11 +100,9 @@ function Assessment() {
         return prevTime - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
- 
   useEffect(() => {
   loadQuestions({
     setQuestions,
@@ -130,7 +127,6 @@ if (!hasRestoredState && !loading && questions.length > 0 && location.state) {
       setCategoryProgress(previousProgress);
       setCategories(Object.keys(previousProgress));
     } else {
-      // fallback in case progress wasn't passed
       const progress = {};
       categories.forEach(category => {
         const categoryQuestions = questions.filter(q => q.category === category);
@@ -150,13 +146,6 @@ if (!hasRestoredState && !loading && questions.length > 0 && location.state) {
   }
 }, [loading, questions, hasRestoredState]);
 
-
-
-
-
-
-  
- 
 const {
   previousAnswers = {},
   previousCategory = '',
@@ -166,12 +155,9 @@ const {
   previousProgress = {}
 } = location.state || {};
 
-
-
 const handleMCQCompletion = () => {
   const totalQuestions = questions.length;
 
-  // Calculate scores
   let totalScore = 0;
   const categoryScores = {};
 
@@ -205,15 +191,12 @@ const handleMCQCompletion = () => {
       remainingTime,
       questions,
       categoryProgress,
-      totalScore,         // ✅ add total score
+      totalScore,         
       categoryScores,
-      userInfo      // ✅ add category-wise scores
+      userInfo     
     }
   });
 };
-
-
-
 
   const getCurrentCategoryQuestions = () => {
     return questions.filter(q => q.category === currentCategory);
@@ -232,14 +215,12 @@ const handleMCQCompletion = () => {
     const currentQuestion = getCurrentQuestion();
     if (!currentQuestion) return;
 
-    // Save answer
    const newAnswers = {
   ...answers,
   [currentQuestion.id]: selectedAnswer
 };
 setAnswers(newAnswers);
 
-// ✅ Recalculate answered counts correctly
 const newProgress = { ...categoryProgress };
 Object.keys(newProgress).forEach(cat => {
   const answeredCount = newProgress[cat].questions.filter(q => newAnswers[q.id]).length;
@@ -249,11 +230,9 @@ setCategoryProgress(newProgress);
     const categoryQuestions = getCurrentCategoryQuestions();
     
     if (currentQuestionIndex < categoryQuestions.length - 1) {
-      // Move to next question in current category
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(answers[categoryQuestions[currentQuestionIndex + 1]?.id] || '');
     } else {
-      // Move to next category
       const currentCategoryIndex = categories.indexOf(currentCategory);
       if (currentCategoryIndex < categories.length - 1) {
         const nextCategory = categories[currentCategoryIndex + 1];
@@ -262,7 +241,6 @@ setCategoryProgress(newProgress);
         const nextCategoryQuestions = questions.filter(q => q.category === nextCategory);
         setSelectedAnswer(answers[nextCategoryQuestions[0]?.id] || '');
       } else {
-        // Assessment complete - navigate to completion page
         handleMCQCompletion();
       }
     }
@@ -274,7 +252,6 @@ setCategoryProgress(newProgress);
       const categoryQuestions = getCurrentCategoryQuestions();
       setSelectedAnswer(answers[categoryQuestions[currentQuestionIndex - 1]?.id] || '');
     } else {
-      // Move to previous category
       const currentCategoryIndex = categories.indexOf(currentCategory);
       if (currentCategoryIndex > 0) {
         const prevCategory = categories[currentCategoryIndex - 1];

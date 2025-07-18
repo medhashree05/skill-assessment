@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './OpenEndedQuestions.css';
 
-
 function OpenEndedQuestions() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
   const userInfo = location.state?.userInfo || {};
     

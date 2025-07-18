@@ -7,7 +7,7 @@ import { MdOutlineWorkOutline } from "react-icons/md";
 import { IoPeopleOutline } from "react-icons/io5";
 import { GiHealthPotion } from "react-icons/gi";
 import { MdFamilyRestroom } from "react-icons/md";
-  
+   
 function Home() {
   const [formData, setFormData] = useState({
   fullName: '',

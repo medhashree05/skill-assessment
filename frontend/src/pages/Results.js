@@ -376,7 +376,7 @@ allCategories.forEach((category) => {
         .skill-percentage {
             font-weight: 600;
             color: #667eea;
-            font-size: 16px;
+            font-size: 16px; 
         }
         
         .insights-section {
@@ -499,8 +499,6 @@ allCategories.forEach((category) => {
   <span class="overview-label">Career Goals:</span>
   <span class="overview-value">${userInfo.careerGoals || 'N/A'}</span>
 </div>
-
-
                     </div>
                     <div>
                     <div class="overview-item">

@@ -26,7 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 API_KEY = os.getenv("GOOGLE_API_KEY")
 if not API_KEY:
     raise Exception("Missing GOOGLE_API_KEY in environment variables")
@@ -43,7 +42,6 @@ def load_questions():
 
 questions_df = load_questions()
 
-# Data Models
 class UserProfile(BaseModel):
     age: int
     education_level: str

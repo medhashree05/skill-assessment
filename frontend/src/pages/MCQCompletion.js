@@ -7,7 +7,7 @@ function MCQCompletion() {
   const location = useLocation();
   const questions = location.state?.questions || [];
   const userInfo = location.state?.userInfo || {};
-  
+   
   const {
   answers = {},
   totalQuestions = 40,

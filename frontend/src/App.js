@@ -6,7 +6,7 @@ import MCQCompletion from './pages/MCQCompletion';
 import OpenEndedQuestions from './pages/OpenEndedQuestions';
 import Results from './pages/Results';
 
-function App() {
+function App() { 
   return (
     <Router>
       <Routes>
