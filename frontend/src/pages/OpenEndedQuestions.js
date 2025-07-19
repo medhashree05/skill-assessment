@@ -100,15 +100,20 @@ function OpenEndedQuestions() {
   }));
 
   const payload = {
-    user_profile: {
-      age: Number(userProfile.age) || 0,
-      education_level: userProfile.educationLevel || "",
-      field: userProfile.currentRole || userProfile.field || "",
-      interests: userProfile.hobbies
-        ? userProfile.hobbies.split(',').map(s => s.trim())
-        : (userProfile.interests || []),
-      aspirations: userProfile.careerGoals || userProfile.aspiration || "",
-    },
+   user_profile: {
+  name: userProfile.fullName || "",  // add this
+  age: Number(userProfile.age) || 0,
+  education_level: userProfile.educationLevel || "",
+  field: userProfile.currentRole || userProfile.field || "",
+  domain: userProfile.professionalDomain || userProfile.professionalDomainOther || "", // add this
+  exp_level: userProfile.workExperience || "", // add this
+  interests: userProfile.hobbies
+    ? userProfile.hobbies.split(',').map(s => s.trim())
+    : (userProfile.interests || []),
+  aspirations: userProfile.careerGoals || userProfile.aspiration || "",
+  career_goal: userProfile.careerGoals || userProfile.careerGoalsOther || "", // add this
+},
+
     answers
   };
 

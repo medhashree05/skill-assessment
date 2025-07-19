@@ -19,8 +19,10 @@ function Home() {
   professionalDomainOther: '',
   careerGoals: '',
   careerGoalsOther: '',
-  hobbies:''
+  hobbies: '',
+  preferredLanguage: '' // <-- add this
 });
+
 
   const navigate = useNavigate();
 
