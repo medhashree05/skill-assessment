@@ -17,10 +17,8 @@ load_dotenv()
 app = FastAPI()
 
 origins = [
-     "http://localhost",
-    "http://localhost:3000",  # If you're using React default port
-    "http://127.0.0.1",
-    "http://127.0.0.1:3000"
+    "https://skill-assessment-1.onrender.com",
+    
 ]
 
 app.add_middleware(
