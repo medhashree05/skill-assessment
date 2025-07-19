@@ -21,18 +21,18 @@ function OpenEndedQuestions() {
   function mapToBackendPayload(userInfo, categoryScores) {
   return {
     user_profile: {
-      name: userInfo.name || "", // NEW
+      name: userInfo.fullName || "", // NEW
       age: Number(userInfo.age) || 0,
-      education: userInfo.education || "", // NEW
+      
       education_level: userInfo.educationLevel || "",
       field: userInfo.currentRole || userInfo.field || "",
-      domain: userInfo.domain || "", // NEW
-      exp_level: userInfo.experienceLevel || "", // NEW
+      domain: userInfo.professionalDomain || userInfo.professionalDomainOther || "", // NEW
+      exp_level: userInfo.workExperience || "", // NEW
       interests: userInfo.hobbies
         ? userInfo.hobbies.split(',').map(s => s.trim())
         : (userInfo.interests || []),
       aspirations: userInfo.careerGoals || userInfo.aspiration || "",
-      career_goal: userInfo.careerGoals || userInfo.aspiration || "", // NEW
+      career_goal: userInfo.careerGoals || userInfo.careerGoalsOther || "", // NEW
     },
     mcq_scores: {
       Cognitive_and_Creative_Skills: categoryScores["Cognitive & Creative Skills"] || 0,

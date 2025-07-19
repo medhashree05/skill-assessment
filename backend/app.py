@@ -49,13 +49,12 @@ class UserProfile(BaseModel):
     name: Optional[str]
     age: int
     education_level: str
-    education: Optional[str]
     field: str
     domain: Optional[str]
     exp_level: Optional[str]
     career_goal: Optional[str]
     interests: List[str]
-    aspirations: Optional[str]
+    
 
 
 class MCQScoreDict(BaseModel):

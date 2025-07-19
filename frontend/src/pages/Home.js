@@ -18,7 +18,8 @@ function Home() {
   professionalDomain: '',
   professionalDomainOther: '',
   careerGoals: '',
-  careerGoalsOther: ''
+  careerGoalsOther: '',
+  hobbies:''
 });
 
   const navigate = useNavigate();
