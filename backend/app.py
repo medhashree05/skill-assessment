@@ -24,7 +24,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -97,7 +97,7 @@ User Profile:
 - Education Level: {req.user_profile.education_level}
 - Field of Study/Profession: {req.user_profile.field}
 - Interests: {', '.join(req.user_profile.interests)}
-- Aspirations: {req.user_profile.aspirations}
+- Aspirations: {req.user_profile.career_goal}
 
 MCQ Scores by Category (0–100):
 {{
@@ -185,7 +185,7 @@ User Profile:
 - Education Level: {req.user_profile.education_level}
 - Field of Study/Profession: {req.user_profile.field}
 - Interests: {', '.join(req.user_profile.interests)}
-- Aspirations: {req.user_profile.aspirations}
+- Aspirations: {req.user_profile.career_goal}
 
 Evaluate the following:
 """ + "\n".join([
@@ -251,7 +251,7 @@ As a career advisor AI, generate personalized tooltips for a skill category comp
 Education: {req.user_profile.education_level}
 Experience: Not specified
 Domain: {req.user_profile.field}
-Career Goal: {req.user_profile.aspirations}
+Career Goal: {req.user_profile.career_goal}
 
 [Skill Category]
 {req.category}:
