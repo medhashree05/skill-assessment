@@ -19,25 +19,31 @@ function OpenEndedQuestions() {
   const [openEndedScores, setOpenEndedScores] = useState([]);
 
   function mapToBackendPayload(userInfo, categoryScores) {
-    return {
-      user_profile: {
-        age: Number(userInfo.age) || 0,
-        education_level: userInfo.educationLevel || "",
-        field: userInfo.currentRole || userInfo.field || "",
-        interests: userInfo.hobbies
-          ? userInfo.hobbies.split(',').map(s => s.trim())
-          : (userInfo.interests || []),
-        aspirations: userInfo.careerGoals || userInfo.aspiration || "",
-      },
-      mcq_scores: {
-        Cognitive_and_Creative_Skills: categoryScores["Cognitive & Creative Skills"] || 0,
-        Work_and_Professional_Behavior: categoryScores["Work & Professional Behavior"] || 0,
-        Emotional_and_Social_Competence: categoryScores["Emotional & Social Competence"] || 0,
-        Learning_and_Self_Management: categoryScores["Learning & Self Management"] || 0,
-        Family_and_Relationships: categoryScores["Family & Relationships"] || 0,
-      }
-    };
-  }
+  return {
+    user_profile: {
+      name: userInfo.name || "", // NEW
+      age: Number(userInfo.age) || 0,
+      education: userInfo.education || "", // NEW
+      education_level: userInfo.educationLevel || "",
+      field: userInfo.currentRole || userInfo.field || "",
+      domain: userInfo.domain || "", // NEW
+      exp_level: userInfo.experienceLevel || "", // NEW
+      interests: userInfo.hobbies
+        ? userInfo.hobbies.split(',').map(s => s.trim())
+        : (userInfo.interests || []),
+      aspirations: userInfo.careerGoals || userInfo.aspiration || "",
+      career_goal: userInfo.careerGoals || userInfo.aspiration || "", // NEW
+    },
+    mcq_scores: {
+      Cognitive_and_Creative_Skills: categoryScores["Cognitive & Creative Skills"] || 0,
+      Work_and_Professional_Behavior: categoryScores["Work & Professional Behavior"] || 0,
+      Emotional_and_Social_Competence: categoryScores["Emotional & Social Competence"] || 0,
+      Learning_and_Self_Management: categoryScores["Learning & Self Management"] || 0,
+      Family_and_Relationships: categoryScores["Family & Relationships"] || 0,
+    }
+  };
+}
+
 
   const [openEndedQuestions, setOpenEndedQuestions] = useState([]);
   // User responses keyed by question index

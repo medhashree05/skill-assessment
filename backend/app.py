@@ -17,7 +17,10 @@ load_dotenv()
 app = FastAPI()
 
 origins = [
-    "https://skill-assessment-1.onrender.com",
+     "http://localhost",
+    "http://localhost:3000",  # If you're using React default port
+    "http://127.0.0.1",
+    "http://127.0.0.1:3000"
 ]
 
 app.add_middleware(
@@ -45,13 +48,16 @@ def load_questions():
 questions_df = load_questions()
 
 class UserProfile(BaseModel):
-    name: str
+    name: Optional[str]
     age: int
-    education: str
-    exp_level: str
-    domain: str
-    career_goal: str
-    interests: List[str] = []
+    education_level: str
+    education: Optional[str]
+    field: str
+    domain: Optional[str]
+    exp_level: Optional[str]
+    career_goal: Optional[str]
+    interests: List[str]
+    aspirations: Optional[str]
 
 
 class MCQScoreDict(BaseModel):
