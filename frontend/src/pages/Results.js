@@ -31,10 +31,12 @@ function Results() {
   categoryScores = {},
   questions = [],
 } = location.state || {};
-const barChartData =[];
+const [barChartData, setBarChartData] = useState([]);
+const [skillsData, setSkillsData] = useState([]);
 
 
-const skillsData = [];
+
+
 console.log(categoryScores);
 const [tooltips, setTooltips] = useState({});
 async function fetchTooltip(category, userScore, marketScore, userProfile) {
@@ -202,23 +204,37 @@ const allCategories = new Set([
   ...Object.keys(openEndedCategoryAverages)
 ]);
 
-allCategories.forEach((category) => {
-  const mcqScore = categoryScores[category]
-  ? (categoryScores[category] )
-  : 0;
+useEffect(() => {
+  const allCategories = new Set([
+    ...Object.keys(categoryScores),
+    ...Object.keys(openEndedCategoryAverages),
+  ]);
 
-  const openScore = openEndedCategoryAverages[category] || 0;
+  const updatedBarChartData = [];
+  const updatedSkillsData = [];
 
-  const weightedScore = Math.round((mcqScore * 0.7) + (openScore * 0.3));
-  skillsData.push({
-    skill: category,
-    percentage: weightedScore,
+  allCategories.forEach((category) => {
+    const mcqScore = categoryScores[category] || 0;
+    const openScore = openEndedCategoryAverages[category] || 0;
+
+    const weightedScore = Math.round((mcqScore * 0.7) + (openScore * 0.3));
+
+    updatedSkillsData.push({
+      skill: category,
+      percentage: weightedScore,
+    });
+
+    updatedBarChartData.push({
+      label: category,
+      value: weightedScore,
+      market: Math.round(Math.random() * 30 + 60), // replace with real data if needed
+    });
   });
-  barChartData.push({
-    label:category,
-    value:weightedScore,
-  })
-});
+
+  setSkillsData(updatedSkillsData);     // Make sure you define this as state
+  setBarChartData(updatedBarChartData); // This triggers the tooltip useEffect
+}, [categoryScores, openEndedCategoryAverages]);
+
 
 
   const handleRetakeAssessment = () => {
