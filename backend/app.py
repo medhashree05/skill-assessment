@@ -17,7 +17,8 @@ load_dotenv()
 app = FastAPI()
 
 origins = [
-    "https://skill-assessment-1.onrender.com",
+    "https://skill-assessment-n1dm.onrender.com",
+    "https://skill-assessment-1.onrender.com"
     
 ]
 
@@ -27,6 +28,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    
 )
 
 API_KEY = os.getenv("GOOGLE_API_KEY")
