@@ -1,4 +1,4 @@
-import React from 'react';
+import {React,useState,useEffect}from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './Results.css';
 import { LuBrain } from "react-icons/lu";
@@ -33,6 +33,57 @@ function Results() {
 } = location.state || {};
 
 console.log(categoryScores);
+const [tooltips, setTooltips] = useState({});
+async function fetchTooltip(category, userScore, marketScore, userProfile) {
+  try {
+    const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_tooltips", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        category,
+        user_score: userScore,
+        benchmark_score: marketScore,
+        user_profile: {
+          age: Number(userProfile.age) || 0,
+          education_level: userProfile.educationLevel || "",
+          field: userProfile.currentRole || userProfile.field || "",
+          interests: userProfile.hobbies
+            ? userProfile.hobbies.split(',').map(s => s.trim())
+            : (userProfile.interests || []),
+          aspirations: userProfile.careerGoals || userProfile.aspiration || "",
+        }
+      })
+    });
+
+    if (!response.ok) throw new Error('Failed to get tooltip');
+    const data = await response.json();
+
+    return data;
+  } catch (err) {
+    console.error(`Error fetching tooltip for ${category}:`, err);
+    return { user_tooltip: "", benchmark_tooltip: "" };
+  }
+}
+useEffect(() => {
+  async function generateAllTooltips() {
+    const newTooltips = {};
+
+    for (const item of barChartData) {
+      const { category, user, market } = item;
+
+      const result = await fetchTooltip(category, user, market, userInfo);
+      newTooltips[category] = result;
+    }
+
+    setTooltips(newTooltips);
+  }
+
+  if (barChartData.length && userInfo?.age) {
+    generateAllTooltips();
+  }
+}, [barChartData, userInfo]);
+
+
 
 const openEndedCategoryScores = {};
 openEndedScores.forEach(scoreObj => {
@@ -198,6 +249,7 @@ allCategories.forEach((category) => {
 
     const strongestSkill = getStrongestSkill();
     const marketPercentile = getMarketPercentile(percentage);
+    
     
 
     return `
@@ -796,25 +848,29 @@ allCategories.forEach((category) => {
       </div>
 
       <div className="analysis-grid">
-        <div className="analysis-card">
-          <div className="card-header">
-            <span className="card-icon">📊</span>
-            <h3>Your Performance vs Market Standards</h3>
-            <p>Comparing your skills with advanced level professionals</p>
-          </div>
-          <div className="bar-chart-container">
+        <div className="bar-chart-container">
   <div className="bar-chart">
     {barChartData.map((item, index) => (
       <div key={index} className="bar-chart-item">
         <div className="bar-chart-bar">
-          <div 
-            className="bar-chart-fill-user" 
-            style={{ height: `${item.value}%` }}
-          ></div>
-          <div 
-            className="bar-chart-fill-market" 
-            style={{ height: `${item.market || 60}%` }}  // Static or dynamic market score
-          ></div>
+          <div className="tooltip-wrapper">
+            <div
+              className="bar-chart-fill-user"
+              style={{ height: `${item.value}%` }}
+            ></div>
+            <div className="tooltip-text">
+              {tooltips[item.label]?.user_tooltip || "Loading..."}
+            </div>
+          </div>
+          <div className="tooltip-wrapper">
+            <div
+              className="bar-chart-fill-market"
+              style={{ height: `${item.market || 60}%` }}
+            ></div>
+            <div className="tooltip-text">
+              {tooltips[item.label]?.benchmark_tooltip || "Loading..."}
+            </div>
+          </div>
         </div>
         <div className="bar-chart-label">{item.label.split(' ')[0]}</div>
       </div>
@@ -833,7 +889,6 @@ allCategories.forEach((category) => {
   </div>
 </div>
 
-        </div>
 
         <div className="analysis-card">
           <div className="card-header">
