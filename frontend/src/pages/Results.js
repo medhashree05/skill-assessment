@@ -31,7 +31,10 @@ function Results() {
   categoryScores = {},
   questions = [],
 } = location.state || {};
+const barChartData =[];
 
+
+const skillsData = [];
 console.log(categoryScores);
 const [tooltips, setTooltips] = useState({});
 async function fetchTooltip(category, userScore, marketScore, userProfile) {
@@ -192,10 +195,7 @@ console.log("Available Keys in skillIcons:", Object.keys(skillIcons));
 
 
   // Bar chart data from actual category scores
-  const barChartData =[];
-
-
-const skillsData = [];
+  
 
 const allCategories = new Set([
   ...Object.keys(categoryScores),
