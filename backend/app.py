@@ -11,12 +11,11 @@ import re
 from typing import Dict 
 from typing import Optional
 
-
 load_dotenv() 
 
 app = FastAPI()
 
-origins = [
+origins = [  
     "https://skill-assessment-1.onrender.com",
     "http://localhost",
     "http://localhost:3000",
@@ -34,12 +33,11 @@ app.add_middleware(
     
 )
 
-API_KEY = os.getenv("GOOGLE_API_KEY")
-if not API_KEY:
-    raise Exception("Missing GOOGLE_API_KEY in environment variables")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gemini-testing-2-466506-6087cde29f81.json"
 
-genai.configure(api_key=API_KEY)
-gemini_model = genai.GenerativeModel("gemini-1.5-flash-latest")
+# Configure Gemini
+genai.configure()
+gemini_model = genai.GenerativeModel("gemini-2.0-flash")
 
 # Load questions once on startup
 def load_questions():
@@ -52,13 +50,13 @@ questions_df = load_questions()
 
 class UserProfile(BaseModel):
     name: Optional[str]
-    age: int
-    education_level: str
-    field: str
+    age: Optional[int]
+    education_level: Optional[str]
+    field: Optional[str]
     domain: Optional[str]
     exp_level: Optional[str]
     career_goal: Optional[str]
-    interests: List[str]
+    interests: Optional[List[str]]
     
 
 
@@ -72,6 +70,7 @@ class MCQScoreDict(BaseModel):
 class OpenEndedRequest(BaseModel):
     user_profile: UserProfile
     mcq_scores: MCQScoreDict
+
 
 @app.get("/")
 def root():
@@ -153,6 +152,7 @@ Only return valid JSON. Do not include anything else.
         raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini API response")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gemini API error: {e}")
+    
 class OpenEndedAnswer(BaseModel):
     question: str
     answer: str
@@ -264,7 +264,7 @@ Career Goal: {req.user_profile.career_goal}
 Instructions:
 1. Create a USER tooltip (max 30 words): 
    - Acknowledge current performance
-   - Provide constructive feedback
+   - Provide constructive feedback  
    - Use encouraging tone
 
 2. Create a BENCHMARK tooltip (max 30 words):
@@ -303,7 +303,7 @@ Return in JSON format:
 
 class GrowthProjectionRequest(BaseModel):
     user_data: UserProfile
-    user_scores: MCQScoreDict
+    user_scores: Dict[str, float]
     benchmark_scores: Dict[str, float]
 
 @app.post("/generate_growth_projection")
@@ -315,7 +315,7 @@ def generate_growth_projection(req: GrowthProjectionRequest):
 You are an expert career analyst generating growth projections for professionals.
 Profile:
 - Name: {req.user_data.name}
-- Education: {req.user_data.education}
+- Education: {req.user_data.education_level}
 - Experience: {req.user_data.exp_level}
 - Domain: {req.user_data.domain}
 - Career Goal: {req.user_data.career_goal}
@@ -414,7 +414,7 @@ As a career advisor AI, generate a comprehensive market position analysis for a 
 
 [User Profile]
 Name: {req.user_profile.name}
-Education: {req.user_profile.education}
+Education: {req.user_profile.education_level}
 Experience: {req.user_profile.exp_level}
 Professional Domain: {req.user_profile.domain}
 Career Goal: {req.user_profile.career_goal}
@@ -481,8 +481,7 @@ Return in JSON format:
         }
 
     try:
-        if not API_KEY:
-            return get_fallback_market_analysis(req.tier, req.percentile)
+       
 
         response = gemini_model.generate_content(MARKET_ANALYSIS_PROMPT)
         raw_text = response.text.strip()
@@ -512,50 +511,10 @@ class PeerBenchmarkRequest(BaseModel):
 
 @app.post("/generate_peer_benchmark")
 def generate_peer_benchmark(req: PeerBenchmarkRequest):
-    """Generate peer benchmark and in-demand traits analysis"""
-    prompt = f"""
-## ROLE
-You are acting as a **career market intelligence analyst** for a skill-assessment platform.  
-Your goal: Generate **highly personalized, market-aligned insights** that compare the user's performance to peers and map their skills to in-demand industry traits.
+    """Generate peer benchmark and in-demand traits analysis report"""
 
----
-
-## CONTEXT
-- Name: {req.user_data.name}
-- Domain: {req.user_data.domain}
-- Career Goal: {req.user_data.career_goal}
-- Experience Level: {req.user_data.exp_level}
-- Combined Score: {req.combined_score:.1f}/100
-- MCQ Scores: {json.dumps(req.mcq_scores)}
-- Open-Ended Scores: {json.dumps(req.open_scores)}
-- Strong Categories: {', '.join(req.strong_categories)}
-- Weak Categories: {', '.join(req.weak_categories)}
-- Benchmarks: {json.dumps(req.benchmarks)}
-
----
-
-## TASK
-### **Industry Comparison & Peer Benchmark**
-1. **Percentile Positioning**  
-   - Predict the user’s skill percentile vs. peers in the same **domain & career goal** (e.g., "Top 72% among final-year AI engineering students").
-   - Justify percentile using **peer performance trends or aggregated test-taker data**.
-
-2. **Peer Benchmark Narrative**  
-   - Write **2 engaging sentences** comparing the user to typical peers, highlighting both competitive edges and gaps.
-
-3. **In-Demand Traits Mapping**  
-   - Map **3 in-demand traits** (from current job market, internships, or hiring trends) to the user’s strongest/weakest areas.  
-   - Be **specific** (e.g., “Your high score in Work Behavior aligns with demand for reliable agile team contributors”).
-
-4. **Industry Reports & Evidence**  
-   - Support insights by referencing **industry-backed sources** (LinkedIn, WEF, NASSCOM, McKinsey, etc.).
-   - Provide the sources in 1-line **Source – Context – URL** format.
-
----
-
-## OUTPUT FORMAT (STRICT JSON)
-Return ONLY valid JSON in this format:
-{
+    # Define the JSON format outside the f-string to avoid formatting issues
+    json_format = '''{
   "peer_benchmark": {
     "percentile": "Top 72% among peers in Data Science",
     "narrative": "Your performance outpaces many peers in problem-solving, but lags in communication skills.",
@@ -570,21 +529,39 @@ Return ONLY valid JSON in this format:
       "WEF Future of Jobs – Learning agility tops emerging AI skills – https://weforum.org/..."
     ]
   }
-}
+}'''
+
+    PEER_BENCHMARK_PROMPT = f"""
+As a career market intelligence AI, generate a personalized benchmark and industry trait analysis based on a user's performance data and profile.
+
+[User Profile]
+- Name: {req.user_data.name}
+- Domain: {req.user_data.domain}
+- Career Goal: {req.user_data.career_goal}
+- Experience Level: {req.user_data.exp_level}
+
+[Assessment Summary]
+- Combined Score: {req.combined_score:.1f}/100
+- MCQ Scores: {json.dumps(req.mcq_scores)}
+- Open-Ended Scores: {json.dumps(req.open_scores)}
+- Strong Categories: {', '.join(req.strong_categories) if req.strong_categories else 'None'}
+- Weak Categories: {', '.join(req.weak_categories) if req.weak_categories else 'None'}
+
+[Benchmarks]
+{json.dumps(req.benchmarks, indent=2)}
+
+Instructions:
+1. Estimate the user's **percentile** relative to peers in the same domain and goal (e.g., "Top 72%").
+2. Write a **2-sentence narrative** comparing the user to typical peers, with strengths and improvement areas.
+3. Map **3 in-demand traits** from the job market to their skill strengths or gaps.
+4. Support your insight with **3 one-line industry references** in the format:
+   Source – Context – URL
+
+Return only valid JSON in this format:
+{json_format}
 """
-    try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        benchmark = json.loads(clean_text)
 
-        if "peer_benchmark" not in benchmark:
-            raise ValueError("Missing 'peer_benchmark' key")
-
-        return benchmark
-
-    except Exception as e:
-        print("[ERROR] Peer Benchmark Generation Failed:", e)
+    def get_fallback_peer_benchmark():
         return {
             "peer_benchmark": {
                 "percentile": "Top 70% among peers",
@@ -602,6 +579,22 @@ Return ONLY valid JSON in this format:
             }
         }
 
+    try:
+        response = gemini_model.generate_content(PEER_BENCHMARK_PROMPT)
+        raw_text = response.text.strip()
+        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+        benchmark = json.loads(clean_text)
+
+        if "peer_benchmark" not in benchmark:
+            raise ValueError("Missing 'peer_benchmark' key")
+
+        return benchmark
+
+    except Exception as e:
+        print(f"[ERROR] Gemini peer benchmark failure: {str(e)}")
+        return get_fallback_peer_benchmark()
+
+
 class ActionPlanRequest(BaseModel):
     user_data: UserProfile
     mcq_scores: Dict[str, float]
@@ -612,64 +605,89 @@ class ActionPlanRequest(BaseModel):
 @app.post("/generate_action_plan")
 def generate_action_plan(req: ActionPlanRequest):
     """Generate 90-day action plan with specific measurable steps"""
-    prompt = f"""
-## ROLE
-You are a **senior career strategist and personalized skill coach** for an enterprise-grade assessment platform.  
-Your job is to create a **highly actionable, motivational, and personalized roadmap** based entirely on the provided scores and profile.
 
----
+    # Define the example format outside the f-string to avoid formatting issues
+    example_format = '''
+{
+  "action_plan": {
+    "Weak Skills": [
+      {"Skill Cluster": "Category Name", "Your Level": "Weak", "Suggested Actions & Tools": "12-15 word measurable step"}
+    ],
+    "Moderate Skills": [
+      {"Skill Cluster": "Category Name", "Your Level": "Moderate", "Suggested Actions & Tools": "..."}
+    ],
+    "Strong Skills": [
+      {"Skill Cluster": "Category Name", "Your Level": "Strong", "Suggested Actions & Tools": "..."}
+    ]
+  }
+}'''
 
-## USER DATA (STRICTLY BASE OUTPUT ON THIS)
+    ACTION_PLAN_PROMPT = f"""
+As a senior career strategist and personalized skill coach, design a customized 90-day development plan based on the user's scores and goals.
+
+[User Profile]
 - Name: {req.user_data.name}
-- Education: {req.user_data.education}
+- Education Level: {req.user_data.education_level}
 - Experience Level: {req.user_data.exp_level}
 - Professional Domain: {req.user_data.domain}
 - Career Goal: {req.user_data.career_goal}
 
-## SCORES & CATEGORIES
+[Assessment Scores]
 - MCQ Scores: {json.dumps(req.mcq_scores)}
 - Open-Ended Scores: {json.dumps(req.open_scores)}
-- Strong Skill Areas: {', '.join(req.strong_categories)}
-- Weak Skill Areas: {', '.join(req.weak_categories)}
+- Strong Skill Areas: {', '.join(req.strong_categories) or 'None'}
+- Weak Skill Areas: {', '.join(req.weak_categories) or 'None'}
 
----
+Instructions:
+1. Group skills into **Weak**, **Moderate**, and **Strong** based on scores.
+2. For each, provide 12–15 word **measurable and realistic** actions using tools, resources, or tasks.
+3. Keep actions specific and tailored to the career goal.
 
-## TASK: \ud83e\udded **90-DAY ACTION PLAN**
-Break down all assessed skill categories into **Weak, Moderate, and Strong groups** and give **specific, measurable, and realistic actions**.
-
-### **STRICT FORMAT**
-"action_plan": {
-"Weak Skills": [
-{"Skill Cluster": "Category Name", "Your Level": "Weak", "Suggested Actions & Tools": "12-15 word measurable step"}
-],
-"Moderate Skills": [
-{"Skill Cluster": "Category Name", "Your Level": "Moderate", "Suggested Actions & Tools": "..."}
-],
-"Strong Skills": [
-{"Skill Cluster": "Category Name", "Your Level": "Strong", "Suggested Actions & Tools": "..."}
-]
-}
+Return strictly in this JSON format:
+{example_format}
 """
+
+    def get_fallback_action_plan():
+        return {
+            "action_plan": {
+                "Weak Skills": [
+                    {
+                        "Skill Cluster": "Time Management",
+                        "Your Level": "Weak",
+                        "Suggested Actions & Tools": "Use Pomodoro method daily to improve focus and task efficiency"
+                    }
+                ],
+                "Moderate Skills": [
+                    {
+                        "Skill Cluster": "Communication",
+                        "Your Level": "Moderate",
+                        "Suggested Actions & Tools": "Join weekly Toastmasters to refine structured speaking and feedback"
+                    }
+                ],
+                "Strong Skills": [
+                    {
+                        "Skill Cluster": "Problem Solving",
+                        "Your Level": "Strong",
+                        "Suggested Actions & Tools": "Take lead on project sprints to apply logic under time pressure"
+                    }
+                ]
+            }
+        }
+
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_model.generate_content(ACTION_PLAN_PROMPT)
         raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
         action_plan = json.loads(clean_text)
 
         if "action_plan" not in action_plan:
-            raise ValueError("Missing 'action_plan' key")
+            raise ValueError("Missing 'action_plan' key in Gemini response")
 
         return action_plan
 
     except Exception as e:
-        print("[ERROR] Action Plan Generation Failed:", e)
-        return {
-            "action_plan": {
-                "Weak Skills": [{"Skill Cluster": "Sample", "Your Level": "Weak", "Suggested Actions & Tools": "Practice daily exercises to build foundational skills"}],
-                "Moderate Skills": [{"Skill Cluster": "Sample", "Your Level": "Moderate", "Suggested Actions & Tools": "Complete one real-world project each month"}],
-                "Strong Skills": [{"Skill Cluster": "Sample", "Your Level": "Strong", "Suggested Actions & Tools": "Mentor others to strengthen leadership abilities"}]
-            }
-        }
+        print(f"[ERROR] Gemini action plan generation failed: {str(e)}")
+        return get_fallback_action_plan()
 
 class GrowthSourcesRequest(BaseModel):
     user_data: UserProfile
@@ -680,65 +698,58 @@ class GrowthSourcesRequest(BaseModel):
 @app.post("/generate_growth_sources")
 def generate_growth_sources(req: GrowthSourcesRequest):
     """Generate credible sources for growth projection"""
-    prompt = f"""
-## ROLE
-You are a **career market analyst and researcher** for a skill-assessment platform.  
-Your primary task: **provide accurate, relevant sources** supporting career growth projections.
 
----
+    # Safely extract projection data with error handling
+    try:
+        growth_proj = req.projection.get('growth_projection', {})
+        current_score = growth_proj.get('current_score', 0.0)
+        three_months = growth_proj.get('3_months', 0.0)
+        six_months = growth_proj.get('6_months', 0.0)
+        twelve_months = growth_proj.get('12_months', 0.0)
+    except (KeyError, AttributeError, TypeError) as e:
+        print(f"[ERROR] Error accessing projection data: {str(e)}")
+        print(f"[DEBUG] Projection structure: {req.projection}")
+        # Use default values
+        current_score = 0.0
+        three_months = 0.0
+        six_months = 0.0
+        twelve_months = 0.0
 
-## CONTEXT
-- User Domain: {req.user_data.domain}
+    GROWTH_SOURCES_PROMPT = f"""
+As a career market analyst and researcher, provide high-confidence references to support projected skill growth timelines for a user.
+
+[User Context]
+- Domain: {req.user_data.domain}
 - Career Goal: {req.user_data.career_goal}
 - Experience Level: {req.user_data.exp_level}
-- Weak Categories: {', '.join(req.weak_categories)}
-- Strong Categories: {', '.join(req.strong_categories)}
-- Growth Projection Scores:
-  - Current: {req.projection['growth_projection']['current_score']:.1f}
-  - 3 Months: {req.projection['growth_projection']['3_months']:.1f}
-  - 6 Months: {req.projection['growth_projection']['6_months']:.1f}
-  - 12 Months: {req.projection['growth_projection']['12_months']:.1f}
+- Weak Skill Categories: {', '.join(req.weak_categories) if req.weak_categories else 'None'}
+- Strong Skill Categories: {', '.join(req.strong_categories) if req.strong_categories else 'None'}
 
----
+[Growth Projection Scores]
+- Current: {current_score:.1f}
+- 3 Months: {three_months:.1f}
+- 6 Months: {six_months:.1f}
+- 12 Months: {twelve_months:.1f}
 
-## TASK
-For each timeframe (**Current, 3 Months, 6 Months, 12 Months**):
-1. Provide **1 credible source** that justifies the growth potential or required skill development.  
-2. The source must be **specific to the user's domain and career goal**.  
-3. Prefer sources like:
-   - LinkedIn Talent Insights
-   - WEF Future of Jobs Reports
-   - NASSCOM / McKinsey / Deloitte industry reports
-   - Relevant academic or research papers  
-4. Use the following format:
-   *Source Name – One line context – [Link]*
+Instructions:
+1. For each timeframe (Current, 3 Months, 6 Months, 12 Months), give 1 reliable source supporting that level of growth.
+2. Tailor the context to the user's domain and career goal.
+3. Use only respected industry sources (LinkedIn, WEF, NASSCOM, McKinsey, academic reports, etc).
+4. Format each as:
+   Source Name – Context – URL
 
----
-
-## OUTPUT FORMAT (STRICT JSON)
-Return only valid JSON in this structure:
-{
-  "sources": {
-    "Current": "Source Name – Context – URL",
-    "3 Months": "Source Name – Context – URL",
-    "6 Months": "Source Name – Context – URL",
-    "12 Months": "Source Name – Context – URL"
-  }
-}
+Return valid JSON:
+{{
+  "sources": {{
+    "Current": "Source – Context – URL",
+    "3 Months": "Source – Context – URL",
+    "6 Months": "Source – Context – URL",
+    "12 Months": "Source – Context – URL"
+  }}
+}}
 """
-    try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        sources = json.loads(clean_text)
 
-        if "sources" not in sources:
-            raise ValueError("Missing 'sources' key")
-
-        return sources
-
-    except Exception as e:
-        print("[ERROR] Growth Sources Generation Failed:", e)
+    def get_fallback_growth_sources():
         return {
             "sources": {
                 "Current": "LinkedIn Talent Insights – Growing demand in your domain – https://linkedin.com",
@@ -748,3 +759,17 @@ Return only valid JSON in this structure:
             }
         }
 
+    try:
+        response = gemini_model.generate_content(GROWTH_SOURCES_PROMPT)
+        raw_text = response.text.strip()
+        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+        sources = json.loads(clean_text)
+
+        if "sources" not in sources:
+            raise ValueError("Missing 'sources' key in Gemini response")
+
+        return sources
+
+    except Exception as e:
+        print(f"[ERROR] Gemini growth sources generation failed: {str(e)}")
+        return get_fallback_growth_sources()

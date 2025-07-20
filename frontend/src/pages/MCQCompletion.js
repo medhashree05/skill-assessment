@@ -7,7 +7,7 @@ function MCQCompletion() {
   const location = useLocation();
   const questions = location.state?.questions || [];
   const userInfo = location.state?.userInfo || {};
-   
+  
   const {
   answers = {},
   totalQuestions = 40,
@@ -44,7 +44,7 @@ const generateOpenEndedQuestions = async () => {
   };
 
   try {
-    const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_open_ended_questions", {
+    const response = await fetch("http://localhost:8000/generate_open_ended_questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

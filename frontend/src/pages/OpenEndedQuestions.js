@@ -5,6 +5,7 @@ import './OpenEndedQuestions.css';
 function OpenEndedQuestions() {
   const location = useLocation();
   const navigate = useNavigate(); 
+const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
 
   const userInfo = location.state?.userInfo || {};
     
@@ -50,11 +51,12 @@ function OpenEndedQuestions() {
   const [responses, setResponses] = useState({});
 
   useEffect(() => {
+    if (hasFetchedQuestions) return;
     async function fetchOpenEndedQuestions() {
       try {
         const payload = mapToBackendPayload(userInfo, categoryScores);
 
-        const response = await fetch('https://skill-assessment-n1dm.onrender.com/generate_open_ended_questions', {
+        const response = await fetch('http://localhost:8000/generate_open_ended_questions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -82,10 +84,11 @@ function OpenEndedQuestions() {
       } catch (error) {
         console.error('Failed to load open-ended questions:', error);
       }
+       setHasFetchedQuestions(true);
     }
 
     fetchOpenEndedQuestions();
-  }, [userInfo, categoryScores]);
+  }, [userInfo, categoryScores, hasFetchedQuestions]);
 
   // Handle textarea change
   const handleChange = (e) => {
@@ -117,7 +120,7 @@ function OpenEndedQuestions() {
     answers
   };
 
-  const response = await fetch('https://skill-assessment-n1dm.onrender.com/score_open_ended_responses', {
+  const response = await fetch('http://localhost:8000/score_open_ended_responses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)

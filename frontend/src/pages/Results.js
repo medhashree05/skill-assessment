@@ -7,241 +7,632 @@ import { IoPeopleOutline } from "react-icons/io5";
 import { GiHealthPotion } from "react-icons/gi";
 import { MdFamilyRestroom } from "react-icons/md";
 import { IoInformationCircleOutline } from "react-icons/io5";
+import { useMemo, useCallback, useRef } from 'react';
 
 function Results() {
-  
   const location = useLocation();
   const navigate = useNavigate();
-  const userInfo = location.state?.userInfo || {};
-  console.log(userInfo);
+  const userInfo = location.state?.userInfo;
+  
+  // Use useRef to track if tooltips have been fetched
+  const tooltipsFetched = useRef(false);
+  
   const skillIcons = { 
-  "Cognitive & Creative Skills": <LuBrain />,
-  "Work & Professional Behavior": <MdOutlineWorkOutline />,
-  "Emotional & Social Competence": <IoPeopleOutline />,
-  "Personal Management & Wellness": <GiHealthPotion />,
-  "Family & Relationships": <MdFamilyRestroom />
-};
+    "Cognitive & Creative Skills": <LuBrain />,
+    "Work & Professional Behavior": <MdOutlineWorkOutline />,
+    "Emotional & Social Competence": <IoPeopleOutline />,
+    "Personal Management & Wellness": <GiHealthPotion />,
+    "Family & Relationships": <MdFamilyRestroom />
+  };
 
- const {
-  mcqAnswers = {},
-  openEndedResponses = {},
-  openEndedScores = [],
-  totalMCQs = 0,
-  totalScore = 0,
-  categoryScores = {},
-  questions = [],
-} = location.state || {};
-const [barChartData, setBarChartData] = useState([]);
-const [skillsData, setSkillsData] = useState([]);
+  const dummyMarketScores = {
+    "Cognitive & Creative Skills": 65,
+    "Work & Professional Behavior": 70,
+    "Emotional & Social Competence": 60,
+    "Personal Management & Wellness": 68,
+    "Family & Relationships": 63
+  };
+
+  const {
+    mcqAnswers = {},
+    openEndedResponses = {},
+    openEndedScores = [],
+    totalMCQs = 0,
+    totalScore = 0,
+    categoryScores = {},
+    questions = [],
+  } = location.state || {};
+
+  const [barChartData, setBarChartData] = useState([]);
+  const [skillsData, setSkillsData] = useState([]);
+  const [tooltips, setTooltips] = useState({});
+  const [loadingTooltips, setLoadingTooltips] = useState(false);
+  const [growthProjection, setGrowthProjection] = useState(null);
+const [loadingGrowth, setLoadingGrowth] = useState(false);
+const [growthError, setGrowthError] = useState(null);
+const growthFetched = useRef(false);
+const [marketAnalysis, setMarketAnalysis] = useState(null);
+const [loadingMarketAnalysis, setLoadingMarketAnalysis] = useState(false);
+const [marketAnalysisError, setMarketAnalysisError] = useState(null);
+const marketAnalysisFetched = useRef(false);
+const [peerBenchmark, setPeerBenchmark] = useState(null);
+const [loadingPeerBenchmark, setLoadingPeerBenchmark] = useState(false);
+const [peerBenchmarkError, setPeerBenchmarkError] = useState(null);
+const peerBenchmarkFetched = useRef(false);
+const [actionPlan, setActionPlan] = useState(null);
+const [loadingActionPlan, setLoadingActionPlan] = useState(false);
+const [actionPlanError, setActionPlanError] = useState(null);
+const actionPlanFetched = useRef(false);
+const [growthSources, setGrowthSources] = useState(null);
+const [loadingGrowthSources, setLoadingGrowthSources] = useState(false);
+const [growthSourcesError, setGrowthSourcesError] = useState(null);
+const growthSourcesFetched = useRef(false);
 
 
 
-
-console.log(categoryScores);
-const [tooltips, setTooltips] = useState({});
-async function fetchTooltip(category, userScore, marketScore, userProfile) {
-  try {
-    const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_tooltips", {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        category,
-        user_score: userScore,
-        benchmark_score: marketScore,
-        user_profile: {
-          age: Number(userProfile.age) || 0,
-          education_level: userProfile.educationLevel || "",
-          field: userProfile.currentRole || userProfile.field || "",
-          interests: userProfile.hobbies
-            ? userProfile.hobbies.split(',').map(s => s.trim())
-            : (userProfile.interests || []),
-          aspirations: userProfile.careerGoals || userProfile.aspiration || "",
-        }
-      })
+  // Memoize calculations to prevent recalculation on every render
+  const calculatedData = useMemo(() => {
+    const openEndedCategoryScores = {};
+    openEndedScores.forEach(scoreObj => {
+      const { category, score } = scoreObj;
+      if (!openEndedCategoryScores[category]) {
+        openEndedCategoryScores[category] = [];
+      }
+      openEndedCategoryScores[category].push(score);
     });
 
-    if (!response.ok) throw new Error('Failed to get tooltip');
-    const data = await response.json();
+    const openEndedCategoryAverages = {};
+    Object.entries(openEndedCategoryScores).forEach(([category, scores]) => {
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      openEndedCategoryAverages[category] = avg;
+    });
 
-    return data;
-  } catch (err) {
-    console.error(`Error fetching tooltip for ${category}:`, err);
-    return { user_tooltip: "", benchmark_tooltip: "" };
-  }
-}
-useEffect(() => {
-  async function generateAllTooltips() {
-    const newTooltips = {};
+    const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, b) => a + b, 0) / (Object.keys(openEndedCategoryAverages).length || 1);
+    const mcqpercentage = totalMCQs > 0 ? Math.round((totalScore/160) * 70) : 0;
+    const open_ended_percentage = totalMCQs > 0 ? Math.round((openEndedTotalScore/50) * 30) : 0;
+    const percentage = mcqpercentage + open_ended_percentage;
 
-    for (const item of barChartData) {
-      const { category, user, market } = item;
+    // Generate bar chart data
+    const allCategories = new Set([
+      ...Object.keys(categoryScores),
+      ...Object.keys(openEndedCategoryAverages)
+    ]);
 
-      const result = await fetchTooltip(category, user, market, userInfo);
-      newTooltips[category] = result;
+    const chartData = [];
+    allCategories.forEach((category) => {
+      const mcq = categoryScores[category] || 0;
+      const open = openEndedCategoryAverages[category] || 0;
+      const weightedScore = Math.round((mcq / 160) * 70 + (open / 50) * 30);
+      chartData.push({
+        label: category,
+        value: weightedScore,
+        market: dummyMarketScores[category] || 65
+      });
+    });
+
+    // Generate skills data for display
+    const skills = chartData.map(item => ({
+      skill: item.label,
+      percentage: item.value
+    }));
+
+    return {
+      openEndedCategoryAverages,
+      percentage,
+      chartData,
+      skills
+    };
+  }, [categoryScores, openEndedScores, totalMCQs, totalScore]);
+
+  // Set initial data only once
+  useEffect(() => {
+    setBarChartData(calculatedData.chartData);
+    setSkillsData(calculatedData.skills);
+  }, []); // Empty dependency array - runs only once
+
+  // Memoize fetchTooltip function
+  const fetchTooltip = useCallback(async (category, userScore, marketScore, userProfile) => {
+    const payload = {
+      category,
+      user_score: Number(userScore) || 0,
+      benchmark_score: Number(marketScore) || 0,
+      user_profile: {
+        name: userProfile.fullName || "Anonymous",
+        age: Number(userProfile.age) || 0,
+        education_level: userProfile.educationLevel || "",
+        field: userProfile.field || "",
+        domain: userProfile.domain || userProfile.field || "General",
+        exp_level: userProfile.experienceLevel || "Beginner",
+        interests: userProfile.hobbies
+          ? userProfile.hobbies.split(',').map(s => s.trim())
+          : (userProfile.interests || []),
+        career_goal: userProfile.careerGoals || userProfile.aspiration || ""
+      }
+    };
+
+    try {
+      const response = await fetch("http://localhost:8000/generate_tooltips", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Tooltip API failed for ${category}`, response.status, errorText);
+        throw new Error('Failed to get tooltip');
+      }
+
+
+      const data = await response.json();
+      console.log(data);
+      return data;
+    } catch (err) {
+      console.error(`Error fetching tooltip for ${category}:`, err);
+      return { user_tooltip: "", benchmark_tooltip: "" };
+    }
+  }, []); // Empty dependency array since this function doesn't depend on any state
+
+  // Fetch tooltips only once when component mounts and data is ready
+  useEffect(() => {
+    const generateAllTooltips = async () => {
+      // Only fetch if we haven't fetched before, have data, and have userInfo
+      if (tooltipsFetched.current || calculatedData.chartData.length === 0 || !userInfo?.fullName) {
+        return;
+      }
+
+      tooltipsFetched.current = true; // Mark as fetched immediately to prevent duplicate calls
+      setLoadingTooltips(true);
+
+      const newTooltips = {};
+
+      try {
+        // Use Promise.all to fetch all tooltips concurrently
+        const tooltipPromises = calculatedData.chartData.map(async (item) => {
+          const { label: category, value: user, market } = item;
+          try {
+            const result = await fetchTooltip(category, user, market, userInfo);
+            return { category, result };
+          } catch (err) {
+            console.error(`Tooltip failed for ${category}`, err);
+            return { category, result: { user_tooltip: "", benchmark_tooltip: "" } };
+          }
+        });
+
+        const tooltipResults = await Promise.all(tooltipPromises);
+        
+        tooltipResults.forEach(({ category, result }) => {
+          newTooltips[category] = result;
+        });
+        console.log("🧪 Generating tooltips...");
+
+        setTooltips(newTooltips);
+      } catch (error) {
+        console.error('Error generating tooltips:', error);
+      } finally {
+        setLoadingTooltips(false);
+      }
+    };
+
+    generateAllTooltips();
+  }, []); // Empty dependency array - runs only once when component mounts
+
+  useEffect(() => {
+  const fetchGrowthProjection = async () => {
+    if (
+      growthFetched.current ||               // Already fetched
+      !userInfo ||                           // User data not available
+      skillsData.length === 0                // Skill scores not ready
+    ) {
+      return;
     }
 
-    setTooltips(newTooltips);
-  }
+    growthFetched.current = true; // Prevent future calls
+    setLoadingGrowth(true);
+    setGrowthError(null);
 
-  if (barChartData.length && userInfo?.age) {
-    generateAllTooltips();
-  }
-}, [barChartData, userInfo]);
+    const formattedScores = {};
+    const formattedBenchmarks = {};
 
+    const mapSkillNameToAPIFormat = (skillName) => {
+  const mapping = {
+    "Cognitive & Creative Skills": "Cognitive_and_Creative_Skills",
+    "Work & Professional Behavior": "Work_and_Professional_Behavior", 
+    "Emotional & Social Competence": "Emotional_and_Social_Competence",
+    "Personal Management & Wellness": "Learning_and_Self_Management", // Note: API expects "Learning_and_Self_Management"
+    "Family & Relationships": "Family_and_Relationships"
+  };
+  return mapping[skillName] || skillName;
+};
 
-
-const openEndedCategoryScores = {};
-openEndedScores.forEach(scoreObj => {
-  const { category, score } = scoreObj;
-  if (!openEndedCategoryScores[category]) {
-    openEndedCategoryScores[category] = [];
-  }
-  openEndedCategoryScores[category].push(score);
+skillsData.forEach(skill => {
+  const apiSkillName = mapSkillNameToAPIFormat(skill.skill);
+  formattedScores[apiSkillName] = skill.percentage || 0;
+  formattedBenchmarks[apiSkillName] = dummyMarketScores[skill.skill] || 65;
 });
 
-const openEndedCategoryAverages = {};
-Object.entries(openEndedCategoryScores).forEach(([category, scores]) => {
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  openEndedCategoryAverages[category] = avg;
-});
+    const payload = {
+      user_data: {
+        name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      user_scores: formattedScores,
+      benchmark_scores: formattedBenchmarks
+    };
 
+    try {
+      const response = await fetch("http://localhost:8000/generate_growth_projection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
 
-const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, b) => a + b, 0) / (Object.keys(openEndedCategoryAverages).length || 1);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Growth Projection API failed", response.status, errorText);
+        throw new Error("Failed to get growth projection");
+      }
 
- 
-  const mcqpercentage = totalMCQs > 0 ? Math.round((totalScore/160) * 70) : 0;
-  const open_ended_percentage = totalMCQs > 0 ? Math.round((totalScore/50) * 30) : 0;
-  const percentage = mcqpercentage + open_ended_percentage;
+      const data = await response.json();
+      console.log("📈 Growth Projection:", data);
+      setGrowthProjection(data);
+    } catch (error) {
+      console.error("Error fetching growth projection:", error);
+      setGrowthError("Failed to load growth projection.");
+    } finally {
+      setLoadingGrowth(false);
+    }
+  };
+
+  fetchGrowthProjection();
+}, [userInfo, skillsData]);
+  useEffect(() => {
+  const fetchMarketAnalysis = async () => {
+    if (
+      marketAnalysisFetched.current ||
+      !userInfo ||
+      !calculatedData.percentage ||
+      barChartData.length === 0
+    ) {
+      return;
+    }
+
+    marketAnalysisFetched.current = true;
+    setLoadingMarketAnalysis(true);
+    setMarketAnalysisError(null);
+
+    // Prepare formatted benchmark scores for the payload
+    const benchmark_scores = {};
+    barChartData.forEach(item => {
+      benchmark_scores[item.label] = item.market;
+    });
+
+    const payload = {
+      user_profile: {
+        name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      final_score: Number(totalScore || 0),
+      overall_percentage: calculatedData.percentage || 0,
+      tier: growthProjection?.tier || "Emerging Talent", // fallback if growthProjection isn't ready
+      percentile: growthProjection?.percentile || 50,     // fallback value
+      strengths: barChartData
+        .filter(skill => skill.value >= 65)
+        .map(skill => skill.label),
+      weaknesses: barChartData
+        .filter(skill => skill.value < 50)
+        .map(skill => skill.label),
+      benchmark_scores
+    };
+
+    try {
+      const response = await fetch("http://localhost:8000/generate_market_analysis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      console.log("Response status:", response.status); // Add this
+  console.log("Payload sent:", payload); // Add this
   
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Market Analysis API failed", response.status, errorText);
+        throw new Error("Failed to get market analysis");
+      }
 
-  const getPerformanceLevel = (score) => {
+      const data = await response.json();
+      console.log("📊 Market Analysis:", data);
+      setMarketAnalysis(data);
+    } catch (error) {
+      console.error("Error fetching market analysis:", error);
+      setMarketAnalysisError("Failed to load market analysis.");
+    } finally {
+      setLoadingMarketAnalysis(false);
+    }
+  };
+
+  fetchMarketAnalysis();
+}, [userInfo, barChartData, calculatedData.percentage, totalScore, growthProjection]);
+
+
+  
+useEffect(() => {
+  const fetchPeerBenchmark = async () => {
+    if (
+      peerBenchmarkFetched.current ||
+      !userInfo ||
+      barChartData.length === 0 ||
+      !calculatedData.percentage
+    ) return;
+
+    peerBenchmarkFetched.current = true;
+    setLoadingPeerBenchmark(true);
+    setPeerBenchmarkError(null);
+
+    const mcqScores = {};
+    const openScores = {};
+    const benchmarks = {};
+
+    barChartData.forEach(item => {
+      mcqScores[item.label] = categoryScores[item.label] || 0;
+      openScores[item.label] = calculatedData.openEndedCategoryAverages[item.label] || 0;
+      benchmarks[item.label] = item.market;
+    });
+
+    const payload = {
+      user_data: {
+        name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      combined_score: calculatedData.percentage || 0,
+      mcq_scores: mcqScores,
+      open_scores: openScores,
+      strong_categories: barChartData.filter(item => item.value >= 65).map(item => item.label),
+      weak_categories: barChartData.filter(item => item.value < 50).map(item => item.label),
+      benchmarks
+    };
+
+    try {
+      const res = await fetch("http://localhost:8000/generate_peer_benchmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      setPeerBenchmark(data.peer_benchmark);
+    } catch (err) {
+      console.error("Peer benchmark error:", err);
+      setPeerBenchmarkError("Failed to fetch peer benchmark");
+    } finally {
+      setLoadingPeerBenchmark(false);
+    }
+  };
+
+  fetchPeerBenchmark();
+}, [userInfo, barChartData, calculatedData.percentage,calculatedData.openEndedCategoryAverages]);
+useEffect(() => {
+  const fetchActionPlan = async () => {
+    if (
+      actionPlanFetched.current ||
+      !userInfo ||
+      barChartData.length === 0
+    ) return;
+
+    actionPlanFetched.current = true;
+    setLoadingActionPlan(true);
+    setActionPlanError(null);
+
+    const mcqScores = {};
+    const openScores = {};
+
+    barChartData.forEach(item => {
+      mcqScores[item.label] = categoryScores[item.label] || 0;
+      openScores[item.label] = calculatedData.openEndedCategoryAverages[item.label] || 0;
+    });
+
+    const payload = {
+      user_data: {
+        name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      mcq_scores: mcqScores,
+      open_scores: openScores,
+      strong_categories: barChartData.filter(item => item.value >= 65).map(item => item.label),
+      weak_categories: barChartData.filter(item => item.value < 50).map(item => item.label)
+    };
+
+    try {
+      const res = await fetch("http://localhost:8000/generate_action_plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      setActionPlan(data.action_plan);
+    } catch (err) {
+      console.error("Action plan error:", err);
+      setActionPlanError("Failed to fetch action plan");
+    } finally {
+      setLoadingActionPlan(false);
+    }
+  };
+
+  fetchActionPlan();
+}, [userInfo, barChartData]);
+useEffect(() => {
+  const fetchGrowthSources = async () => {
+    if (
+      growthSourcesFetched.current ||
+      !userInfo ||
+      !growthProjection ||
+      barChartData.length === 0
+    ) return;
+
+    growthSourcesFetched.current = true;
+    setLoadingGrowthSources(true);
+    setGrowthSourcesError(null);
+
+    const payload = {
+      user_data: {
+       name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      weak_categories: barChartData.filter(item => item.value < 50).map(item => item.label),
+      strong_categories: barChartData.filter(item => item.value >= 65).map(item => item.label),
+      projection: {
+  growth_projection: {
+    "current_score": growthProjection.current_score,
+    "3_months": growthProjection["3_months"],
+    "6_months": growthProjection["6_months"],
+    "12_months": growthProjection["12_months"]
+  }
+}
+
+    };
+
+    try {
+      const res = await fetch("http://localhost:8000/generate_growth_sources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      setGrowthSources(data.sources);
+    } catch (err) {
+      console.error("Growth sources error:", err);
+      setGrowthSourcesError("Failed to fetch growth sources");
+    } finally {
+      setLoadingGrowthSources(false);
+    }
+  };
+
+  fetchGrowthSources();
+}, [userInfo, growthProjection, barChartData]);
+
+
+  // Helper functions (memoized to prevent recreation on every render)
+  const getPerformanceLevel = useCallback((score) => {
     if (score >= 80) return 'Excellent';
     if (score >= 60) return 'Good';
     if (score >= 40) return 'Developing';
     return 'Needs Improvement';
-  };
+  }, []);
 
-  // Get market percentile (mock calculation)
-  const getMarketPercentile = (score) => {
+  const getMarketPercentile = useCallback((score) => {
     if (score >= 80) return 'Top 10%';
     if (score >= 60) return 'Top 25%';
     if (score >= 40) return 'Bottom 40%';
     return 'Bottom 20%';
-  };
-   const getSalaryRangeINR = (score) => {
-  if (score >= 80) return '₹12L – ₹16L';
-  if (score >= 60) return '₹9L – ₹12L';
-  if (score >= 40) return '₹6L – ₹9L';
-  return '₹3L – ₹6L';
-};
+  }, []);
 
-const getSalaryRangeUSD = (score) => {
-  if (score >= 80) return '$80k – $100k';
-  if (score >= 60) return '$65k – $80k';
-  if (score >= 40) return '$50k – $65k';
-  return '$30k – $45k';
-};
+  const getSalaryRangeINR = useCallback((score) => {
+    if (score >= 80) return '₹12L – ₹16L';
+    if (score >= 60) return '₹9L – ₹12L';
+    if (score >= 40) return '₹6L – ₹9L';
+    return '₹3L – ₹6L';
+  }, []);
 
-const salaryRangeINR = getSalaryRangeINR(percentage);
-const salaryRangeUSD = getSalaryRangeUSD(percentage);
+  const getSalaryRangeUSD = useCallback((score) => {
+    if (score >= 80) return '$80k – $100k';
+    if (score >= 60) return '$65k – $80k';
+    if (score >= 40) return '$50k – $65k';
+    return '$30k – $45k';
+  }, []);
+
+  // Memoize derived values
+  const percentage = calculatedData.percentage;
+  const salaryRangeINR = getSalaryRangeINR(percentage);
+  const salaryRangeUSD = getSalaryRangeUSD(percentage);
+  const percentileText = getMarketPercentile(percentage);
   
-
-// Parse percentile number from string like 'Top 10%', 'Bottom 40%'
-const getPercentileNumber = (percentileText) => {
-  const match = percentileText.match(/(\d+)%/);
-  if (match) {
-    return parseInt(match[1], 10);
-  }
-  return 0; // fallback if no number found
-};
-const percentileText = getMarketPercentile(percentage); 
-const percentileNumber = getPercentileNumber(percentileText); 
-
-
-// Text for bar message:
-const barMessage = `You're ahead of ${percentileNumber}% of students who took this test.`;
-
+  const getPercentileNumber = useCallback((percentileText) => {
+    const match = percentileText.match(/(\d+)%/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+    return 0;
+  }, []);
+  
+  const percentileNumber = getPercentileNumber(percentileText);
+  const barMessage = `You're ahead of ${percentileNumber}% of students who took this test.`;
 
   // Get strongest skill from actual data
-  const getStrongestSkill = () => {
+  const getStrongestSkill = useCallback(() => {
     if (Object.keys(categoryScores).length === 0) return 'Strategic Thinking';
     
     let strongestSkill = '';
     let highestScore = 0;
     
     Object.entries(categoryScores).forEach(([category, score]) => {
-  const percentage = (score / 160) * 100; // Assuming total = 3
-  if (percentage > highestScore) {
-    highestScore = percentage;
-    strongestSkill = category;
-  }
-});
+      const percentage = (score / 160) * 100;
+      if (percentage > highestScore) {
+        highestScore = percentage;
+        strongestSkill = category;
+      }
+    });
     
     return strongestSkill || 'Strategic Thinking';
-  };
+  }, [categoryScores]);
+
   const strongestSkill = getStrongestSkill();
-const normalizedSkill = strongestSkill.trim();
-const strongestSkillIcon = skillIcons[normalizedSkill] || "💜";
+  const normalizedSkill = strongestSkill.trim();
+  const strongestSkillIcon = skillIcons[normalizedSkill] || "💜";
 
-
-console.log("Strongest Skill:", strongestSkill);
-console.log("Available Keys in skillIcons:", Object.keys(skillIcons));
-
-
-  // Convert categoryScores to chart data
-  const performanceData = Object.entries(categoryScores).map(([category, score]) => ({
-  category,
-  userScore: Math.round((score / 160) * 100), // Assuming total = 3
-  marketAverage: Math.round(Math.random() * 30 + 60)
-}));
-
-
-  // Bar chart data from actual category scores
-  
-
-const allCategories = new Set([
-  ...Object.keys(categoryScores),
-  ...Object.keys(openEndedCategoryAverages)
-]);
-
-useEffect(() => {
-  const allCategories = new Set([
-    ...Object.keys(categoryScores),
-    ...Object.keys(openEndedCategoryAverages),
-  ]);
-
-  const updatedBarChartData = [];
-  const updatedSkillsData = [];
-
-  allCategories.forEach((category) => {
-    const mcqScore = categoryScores[category] || 0;
-    const openScore = openEndedCategoryAverages[category] || 0;
-
-    const weightedScore = Math.round((mcqScore * 0.7) + (openScore * 0.3));
-
-    updatedSkillsData.push({
-      skill: category,
-      percentage: weightedScore,
-    });
-
-    updatedBarChartData.push({
-      label: category,
-      value: weightedScore,
-      market: Math.round(Math.random() * 30 + 60), // replace with real data if needed
-    });
-  });
-
-  setSkillsData(updatedSkillsData);     // Make sure you define this as state
-  setBarChartData(updatedBarChartData); // This triggers the tooltip useEffect
-}, [categoryScores, openEndedCategoryAverages]);
-
-
-
-  const handleRetakeAssessment = () => {
+  const handleRetakeAssessment = useCallback(() => {
     navigate('/');
-  };
+  }, [navigate]);
 
-  const handleDownloadReport = () => {
+  const handleDownloadReport = useCallback(() => {
     const reportHTML = generateReportHTML();
     const blob = new Blob([reportHTML], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -252,23 +643,18 @@ useEffect(() => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
+  }, [percentage, strongestSkill, skillsData, percentileText, percentileNumber, salaryRangeINR, salaryRangeUSD]);
 
-  const generateReportHTML = () => {
-    const currentDate = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-   
+  const generateReportHTML = useCallback(() => {
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-
-    const strongestSkill = getStrongestSkill();
-    const marketPercentile = getMarketPercentile(percentage);
-    
-    
-
-    return `
+  const marketPercentile = getMarketPercentile(percentage);
+  
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -517,6 +903,63 @@ useEffect(() => {
             color: #28a745;
             font-weight: bold;
         }
+
+        /* Action Plan Table Styles */
+        .action-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        
+        .action-table th {
+            background: #f8f9fa;
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .action-table td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+            line-height: 1.4;
+        }
+        
+        .action-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* Growth Projection Styles */
+        .growth-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .growth-metric {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .growth-metric .metric-label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .growth-metric .metric-value {
+            display: block;
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+        }
         
         @media print {
             body {
@@ -535,7 +978,7 @@ useEffect(() => {
     <div class="report-container">
         <div class="report-header">
             <h1>🎯 Skill Assessment Report</h1>
-            <div class="subtitle">Comprehensive Analysis for ${userInfo.fullName || 'Candidate'}</div>
+            <div class="subtitle">Comprehensive Analysis for ${userInfo?.fullName || 'Candidate'}</div>
             <div class="date">${currentDate}</div>
         </div>
         
@@ -548,35 +991,35 @@ useEffect(() => {
                 <div class="overview-grid">
                     <div>
                         <div class="overview-item">
-    <span class="overview-label">Name:</span>
-    <span class="overview-value">${userInfo.fullName || 'N/A'}</span>
-</div>
-<div class="overview-item">
-    <span class="overview-label">Education:</span>
-    <span class="overview-value">${userInfo.educationLevel || 'N/A'}</span>
-</div>
-<div class="overview-item">
-    <span class="overview-label">Experience:</span>
-    <span class="overview-value">${userInfo.workExperience || 'N/A'} years</span>
-</div>
-<div class="overview-item">
-  <span class="overview-label">Professional Domain:</span>
-  <span class="overview-value">${userInfo.professionalDomain || 'N/A'}</span>
-</div>
-<div class="overview-item">
-  <span class="overview-label">Career Goals:</span>
-  <span class="overview-value">${userInfo.careerGoals || 'N/A'}</span>
-</div>
+                            <span class="overview-label">Name:</span>
+                            <span class="overview-value">${userInfo?.fullName || 'N/A'}</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">Education:</span>
+                            <span class="overview-value">${userInfo?.educationLevel || 'N/A'}</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">Experience:</span>
+                            <span class="overview-value">${userInfo?.workExperience || 'N/A'} years</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">Professional Domain:</span>
+                            <span class="overview-value">${userInfo?.professionalDomain || 'N/A'}</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">Career Goals:</span>
+                            <span class="overview-value">${userInfo?.careerGoals || 'N/A'}</span>
+                        </div>
                     </div>
                     <div>
-                    <div class="overview-item">
-  <span class="overview-label">Hobbies / Interests:</span>
-  <span class="overview-value">${userInfo.hobbies || 'N/A'}</span>
-</div>
-<div class="overview-item">
-  <span class="overview-label">Preferred Language:</span>
-  <span class="overview-value">${userInfo.preferredLanguage || 'N/A'}</span>
-</div>
+                        <div class="overview-item">
+                            <span class="overview-label">Hobbies / Interests:</span>
+                            <span class="overview-value">${userInfo?.hobbies || 'N/A'}</span>
+                        </div>
+                        <div class="overview-item">
+                            <span class="overview-label">Preferred Language:</span>
+                            <span class="overview-value">${userInfo?.preferredLanguage || 'N/A'}</span>
+                        </div>
                         <div class="overview-item">
                             <span class="overview-label">Assessment Date:</span>
                             <span class="overview-value">${currentDate}</span>
@@ -610,11 +1053,10 @@ useEffect(() => {
                         <div class="label">${getPerformanceLevel(percentage)}</div>
                     </div>
                     <div class="performance-card salary">
-  <h3>Salary Range</h3>
-  <div class="value">${salaryRangeUSD} / ${salaryRangeINR}</div>
-  <div class="label">US / India Market Range</div>
-</div>
-
+                        <h3>Salary Range</h3>
+                        <div class="value">${salaryRangeUSD} / ${salaryRangeINR}</div>
+                        <div class="label">US / India Market Range</div>
+                    </div>
                 </div>
             </div>
             
@@ -632,7 +1074,6 @@ useEffect(() => {
                     `).join('')}
                 </div>
             </div>
-            
             <div class="section">
                 <div class="section-header">
                     <span>💡</span>
@@ -662,7 +1103,7 @@ useEffect(() => {
                     <div class="insight-card action">
                         <div class="insight-header">
                             <span>🎯</span>
-                            <h4>Action Plan</h4>
+                            <h4>Next Steps</h4>
                         </div>
                         <ul class="action-items">
                             <li>Focus on developing strategic thinking through targeted learning</li>
@@ -672,129 +1113,118 @@ useEffect(() => {
                         </ul>
                     </div>
                 </div>
-<!-- Section 4: Industry Comparison & Peer Benchmark -->
-<div class="section">
-  <div class="section-header">
-    <span>📊</span>
-    <h2>Industry Comparison & Peer Benchmark</h2>
-  </div>
-  <div class="insights-section">
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>📈</span>
-        <h4>Your Peer Standing</h4>
-      </div>
-      <div class="insight-text">
-        You rank in the <strong>${marketPercentile}</strong> compared to others in your domain. This means you're currently ahead of <strong>${percentileNumber}%</strong> of learners from similar backgrounds.
-      </div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>🔍</span>
-        <h4>Skill-Job Market Fit</h4>
-      </div>
-      <div class="insight-text">
-        Your strengths align with the most in-demand traits like analytical thinking and adaptability, based on current reports from WEF, NASSCOM, and LinkedIn.
-      </div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>📚</span>
-        <h4>Benchmark Source</h4>
-      </div>
-      <div class="insight-text">
-        Benchmarks are derived from real-world aggregated peer test data and global workforce studies. (Future version will use live backend updates.)
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Section 5: Personalized Roadmap -->
-<div class="section">
-  <div class="section-header">
-    <span>🧭</span>
-    <h2>Personalized Roadmap / Next Steps</h2>
-  </div>
-  <div class="insights-section">
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>🛠️</span>
-        <h4>Action Plan by Skill Cluster</h4>
-      </div>
-      <div class="insight-text">
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px;">
-          <thead>
-            <tr style="background: #e3e9f7; text-align: left;">
-              <th style="padding: 8px; border: 1px solid #ccc;">Skill Cluster</th>
-              <th style="padding: 8px; border: 1px solid #ccc;">Your Level</th>
-              <th style="padding: 8px; border: 1px solid #ccc;">Suggested Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ccc;">Emotional Competence</td>
-              <td style="padding: 8px; border: 1px solid #ccc;">Weak</td>
-              <td style="padding: 8px; border: 1px solid #ccc;">Try journaling, group work, weekly reflection</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ccc;">Self-Management</td>
-              <td style="padding: 8px; border: 1px solid #ccc;">Moderate</td>
-              <td style="padding: 8px; border: 1px solid #ccc;">Use Notion, time-blocking, track productivity</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px; border: 1px solid #ccc;">Professional Behavior</td>
-              <td style="padding: 8px; border: 1px solid #ccc;">Strong</td>
-              <td style="padding: 8px; border: 1px solid #ccc;">Mentor juniors, share project case studies</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+           
+${peerBenchmark ? `
+    <div class="section">
+        <div class="section-header">
+            <span>📊</span>
+            <h2>Peer Benchmark</h2>
+        </div>
 
-<!-- Section 6: Recommended Resources -->
-<div class="section">
-  <div class="section-header">
-    <span>📌</span>
-    <h2>Recommended Resources</h2>
-  </div>
-  <div class="insights-section">
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>🎓</span>
-        <h4>Courses</h4>
-      </div>
-      <div class="insight-text">
-        Explore free or premium learning paths on platforms like <strong>LinkedIn Learning</strong>, <strong>Coursera</strong>, or <strong>edX</strong> based on your weakest skill area.
-      </div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>🛠️</span>
-        <h4>Tools & Apps</h4>
-      </div>
-      <div class="insight-text">
-        Use tools like <strong>Notion</strong>, <strong>Todoist</strong>, and <strong>Reflectly</strong> for journaling, planning, and behavior tracking.
-      </div>
-    </div>
-    <div class="insight-card">
-      <div class="insight-header">
-        <span>🤝</span>
-        <h4>Activities</h4>
-      </div>
-      <div class="insight-text">
-        Join communities, attend debates, try peer mentoring or volunteering to improve emotional and work behavior skills.
-      </div>
-    </div>
-             </div>
+        <div class="insights-section">
+            <div class="insight-card">
+                <div class="insight-header">
+                    <span>📈</span>
+                    <h4>Benchmark Summary</h4>
+                </div>
+                <p><strong>Percentile:</strong> ${peerBenchmark.percentile}</p>
+                <p><strong>Narrative:</strong> ${peerBenchmark.narrative}</p>
             </div>
+
+            <div class="insight-card">
+                <div class="insight-header">
+                    <span>🧠</span>
+                    <h4>In-Demand Traits</h4>
+                </div>
+                <ul>
+                    ${peerBenchmark["in_demand_traits"].map(trait => `
+                        <li>✅ ${trait}</li>
+                    `).join('')}
+                </ul>
             </div>
+
+            <div class="insight-card">
+                <div class="insight-header">
+                    <span>🔗</span>
+                    <h4>Source References</h4>
+                </div>
+                <ul>
+                    ${peerBenchmark["sources"].map(source => `
+                        <li>🔍 <a href="${source.split(' – ').pop()}" target="_blank">${source}</a></li>
+                    `).join('')}
+                </ul>
+            </div>
+        </div>
+    </div>
+` : ''}
+
+           
+
+            ${actionPlan ? `
+            <div class="section">
+                <div class="section-header">
+                    <span>🎯</span>
+                    <h2>90-Day Action Plan</h2>
+                </div>
+                <div class="insights-section">
+                    ${Object.entries(actionPlan).map(([levelGroup, items]) => `
+                        <div class="insight-card">
+                            <div class="insight-header">
+                                <span>📌</span>
+                                <h4>${levelGroup}</h4>
+                            </div>
+                            <table class="action-table">
+                                <thead>
+                                    <tr>
+                                        <th>Skill Cluster</th>
+                                        <th>Your Level</th>
+                                        <th>Suggested Actions & Tools</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${items.map(item => `
+                                        <tr>
+                                            <td>${item["Skill Cluster"]}</td>
+                                            <td>${item["Your Level"]}</td>
+                                            <td>${item["Suggested Actions & Tools"]}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            ${growthSources ? `
+            <div class="section">
+                <div class="section-header">
+                    <span>📚</span>
+                    <h2>Recommended Resources</h2>
+                </div>
+                <div class="insights-section">
+                    ${Object.entries(growthSources).map(([timeframe, description]) => `
+                        <div class="insight-card">
+                            <div class="insight-header">
+                                <span>${timeframe === 'Current' ? '⏱️' : timeframe === '3 Months' ? '⏳' : timeframe === '6 Months' ? '📈' : '🚀'}</span>
+                                <h4>${timeframe}</h4>
+                            </div>
+                            <div class="insight-text">${description}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            ` : ''}
+
+            
+            
         </div>
     </div>
 </body>
 </html>`;
-  };
+}, [percentage, strongestSkill, skillsData, percentileText, percentileNumber, salaryRangeINR, salaryRangeUSD, userInfo, totalMCQs, getPerformanceLevel, getMarketPercentile, growthProjection, peerBenchmark, actionPlan, growthSources]);
 
   return (
     <div className="results-container">
@@ -864,26 +1294,32 @@ useEffect(() => {
       </div>
 
       <div className="analysis-grid">
+        <div className="analysis-card">
+      <div className="card-header">
+        <span className="card-icon">📊</span>
+        <h3>Your Performance vs Market Standards</h3>
+        <p>Comparing your skills with advanced level professionals</p>
+      </div>
         <div className="bar-chart-container">
   <div className="bar-chart">
     {barChartData.map((item, index) => (
       <div key={index} className="bar-chart-item">
         <div className="bar-chart-bar">
-          <div className="tooltip-wrapper">
+          <div className="tooltip-wrapper-2">
             <div
               className="bar-chart-fill-user"
               style={{ height: `${item.value}%` }}
             ></div>
-            <div className="tooltip-text">
+            <div className="tooltip-text-2">
               {tooltips[item.label]?.user_tooltip || "Loading..."}
             </div>
           </div>
-          <div className="tooltip-wrapper">
+          <div className="tooltip-wrapper-2">
             <div
               className="bar-chart-fill-market"
               style={{ height: `${item.market || 60}%` }}
             ></div>
-            <div className="tooltip-text">
+            <div className="tooltip-text-2">
               {tooltips[item.label]?.benchmark_tooltip || "Loading..."}
             </div>
           </div>
@@ -903,6 +1339,7 @@ useEffect(() => {
       <span>Market Average</span>
     </div>
   </div>
+</div>
 </div>
 
 
@@ -933,82 +1370,134 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="analysis-card">
-          <div className="card-header">
-            <span className="card-icon">📈</span>
-            <h3>Growth Projection</h3>
-            <p>Estimated improvement trajectory</p>
+      {growthProjection && (
+  <div className="analysis-card">
+    <div className="card-header">
+      <span className="card-icon">📈</span>
+      <h3>Growth Projection</h3>
+      <p>Estimated skill improvement over time</p>
+    </div>
+
+    <div className="skills-list-2">
+      <div className="growth-chart">
+        <div className="chart-placeholder">
+          <div className="growth-line"></div>
+          <div className="growth-points">
+            <div className="point start-point"></div>
+
+            <div className="point-wrapper">
+              <span className="growth-label">
+                +{Math.round(growthProjection.growth_projection["3_months"] - growthProjection.growth_projection.current_score)}
+              </span>
+              <div className="point mid-point"></div>
+            </div>
+
+            <div className="point-wrapper">
+              <span className="growth-label">
+                +{Math.round(growthProjection.growth_projection["6_months"] - growthProjection.growth_projection.current_score)}
+              </span>
+              <div className="point mid-point"></div>
+            </div>
+
+            <div className="point-wrapper">
+              <span className="growth-label">
+                +{Math.round(growthProjection.growth_projection["12_months"] - growthProjection.growth_projection.current_score)}
+              </span>
+              <div className="point end-point"></div>
+            </div>
           </div>
-          <div className="growth-chart">
-  <div className="chart-placeholder">
-    <div className="growth-line"></div>
-    <div className="growth-points">
-      <div className="point start-point"></div>
+        </div>
 
-      <div className="point-wrapper">
-        <span className="growth-label">+6</span>
-        <div className="point mid-point"></div>
+        <div className="growth-timeline">
+          <span>Current</span>
+          <span>3 Months</span>
+          <span>6 Months</span>
+          <span>12 Months</span>
+        </div>
       </div>
 
-      <div className="point-wrapper">
-        <span className="growth-label">+9</span>
-        <div className="point mid-point"></div>
+      <div className="growth-insight" style={{ marginTop: "1rem" }}>
+        <span className="insight-icon">💡</span>
+        <p>
+          With focused development, you could improve by up to{" "}
+          <strong>
+            {Math.round(
+              growthProjection.growth_projection["12_months"] -
+              growthProjection.growth_projection.current_score
+            )} points
+          </strong>{" "}
+          in the next year!
+        </p>
+        <p>
+          <strong>Peer Percentile:</strong> You are currently ahead of{" "}
+          <strong>{growthProjection.growth_projection.peer_percentile}%</strong> of your peers.
+        </p>
       </div>
 
-      <div className="point end-point"></div>
+      <div className="action-steps" style={{ marginTop: "1rem" }}>
+        <h4>🎯 Recommended Action Steps</h4>
+        <ul style={{ paddingLeft: "1rem", marginTop: "0.5rem" }}>
+          {growthProjection.action_steps.map((step, index) => (
+            <li key={index} style={{ marginBottom: "0.5rem" }}>
+              ✅ {step}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   </div>
+)}
 
-  <div className="growth-timeline">
-    <span>Current</span>
-    <span>3 Months</span>
-    <span>6 Months</span>
-    <span>12 Months</span>
-  </div>
 
-  <div className="growth-insight">
-    <span className="insight-icon">💡</span>
-    <p>With focused development, you could improve by up to 25 points in the next year!</p>
-  </div>
-</div>
 
+        {marketAnalysis && (
+  <div className="analysis-card">
+    <div className="card-header">
+      <span className="card-icon">📊</span>
+      <h3>Market Position Analysis</h3>
+      <p>Where you stand in the job market</p>
+    </div>
+
+    <div className="market-position">
+      <div className="position-badge">
+        <span className="position-icon">📝</span>
+        <div className="position-info">
+          <span className="position-title">{marketAnalysis.tier.label}</span>
+          <span className="position-desc">{marketAnalysis.tier.description}</span>
+        </div>
+      </div>
+
+      <div className="market-metrics">
+        <div className="metric">
+          <span className="metric-label">Industry Readiness</span>
+          <div className="metric-bar">
+            <div
+              className="metric-fill"
+              style={{ width: `${marketAnalysis.readiness_score}%` }}
+            ></div>
+          </div>
+          <span className="metric-value">{marketAnalysis.readiness_score}%</span>
         </div>
 
-        <div className="analysis-card">
-          <div className="card-header">
-            <span className="card-icon">📊</span>
-            <h3>Market Position Analysis</h3>
-            <p>Where you stand in the job market</p>
+        <div className="salary-range">
+          <div className="salary-item">
+            <span className="salary-label">{marketAnalysis.experience.label}</span>
+            <span className="salary-desc">{marketAnalysis.experience.description}</span>
           </div>
-          <div className="market-position">
-            <div className="position-badge">
-              <span className="position-icon">📝</span>
-              <div className="position-info">
-                <span className="position-title">Emerging Talent</span>
-                <span className="position-desc">Great potential for rapid growth and development</span>
-              </div>
-            </div>
-            <div className="market-metrics">
-              <div className="metric">
-                <span className="metric-label">Industry Readiness</span>
-                <div className="metric-bar">
-                  <div className="metric-fill" style={{ width: '65%' }}></div>
-                </div>
-                <span className="metric-value">65%</span>
-              </div>
-              <div className="salary-range">
-                <div className="salary-item">
-                  <span className="salary-label">0+</span>
-                  <span className="salary-desc">Years Experience Equivalent</span>
-                </div>
-                <div className="salary-item">
-                  <span className="salary-label">{salaryRangeINR}</span>
-                  <span className="salary-desc">Market Salary Range</span>
-                </div>
-              </div>
-            </div>
+          <div className="salary-item">
+            <span className="salary-label">{marketAnalysis.salary.label}</span>
+            <span className="salary-desc">{marketAnalysis.salary.description}</span>
           </div>
         </div>
+      </div>
+
+      <div className="overall-summary">
+        <p>{marketAnalysis.overall_message}</p>
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
 
       <div className="action-buttons">
