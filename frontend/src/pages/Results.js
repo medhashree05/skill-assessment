@@ -445,6 +445,14 @@ useEffect(() => {
   fetchPeerBenchmark();
 }, [userInfo, barChartData, calculatedData.percentage,calculatedData.openEndedCategoryAverages]);
 
+const safePeerBenchmark = peerBenchmark?.peer_benchmark || {
+  percentile: 'Not available',
+  narrative: 'Not available',
+  in_demand_traits: []
+};
+
+
+
 const parseRoadmapText = (roadmapText) => {
   if (!roadmapText) return [];
 
@@ -1345,12 +1353,12 @@ useEffect(() => {
           <h4>Benchmark Summary</h4>
         </div>
         <div class="insight-text">
-          <p><strong>Percentile:</strong> ${peerBenchmark.peer_benchmark.percentile || 'Not available'}</p>
-          <p><strong>Narrative:</strong> ${peerBenchmark.peer_benchmark.narrative || 'Not available'}</p>
+          <p><strong>Percentile:</strong> ${safePeerBenchmark.percentile}</p>
+<p><strong>Narrative:</strong> ${safePeerBenchmark.narrative}</p>
         </div>
       </div>
 
-      ${peerBenchmark.peer_benchmark.in_demand_traits && Array.isArray(peerBenchmark.in_demand_traits) ? `
+     
         <div class="insight-card">
           <div class="insight-header">
             <span>🧠</span>
@@ -1358,11 +1366,11 @@ useEffect(() => {
           </div>
           <div class="insight-text">
             <ul>
-              ${peerBenchmark.peer_benchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+              ${safePeerBenchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
             </ul>
           </div>
         </div>
-      ` : ''}
+      
 
       
       </div>
