@@ -66,13 +66,13 @@ function Results() {
   const [growthSourcesError, setGrowthSourcesError] = useState(null);
   const growthSourcesFetched = useRef(false);
   const [momentumToolkit, setMomentumToolkit] = useState([]);
-const [loadingMomentum, setLoadingMomentum] = useState(false);
-const [momentumError, setMomentumError] = useState(null);
-const momentumFetched = useRef(false);
-const [growthOpportunities, setGrowthOpportunities] = useState([]);
-const [loadingGrowthOpportunities, setLoadingGrowthOpportunities] = useState(false);
-const growthOpportunitiesFetched = useRef(false);
-const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
+  const [loadingMomentum, setLoadingMomentum] = useState(false);
+  const [momentumError, setMomentumError] = useState(null);
+  const momentumFetched = useRef(false);
+  const [growthOpportunities, setGrowthOpportunities] = useState([]);
+  const [loadingGrowthOpportunities, setLoadingGrowthOpportunities] = useState(false);
+  const growthOpportunitiesFetched = useRef(false);
+  const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
 
 
 
@@ -240,7 +240,7 @@ const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
     const formattedBenchmarks = {};
 
     const mapSkillNameToAPIFormat = (skillName) => {
-  const mapping = {
+    const mapping = {
     "Cognitive & Creative Skills": "Cognitive_and_Creative_Skills",
     "Work & Professional Behavior": "Work_and_Professional_Behavior", 
     "Emotional & Social Competence": "Emotional_and_Social_Competence",
@@ -1353,8 +1353,8 @@ useEffect(() => {
           <h4>Benchmark Summary</h4>
         </div>
         <div class="insight-text">
-          <p><strong>Percentile:</strong> ${safePeerBenchmark.percentile}</p>
-<p><strong>Narrative:</strong> ${safePeerBenchmark.narrative}</p>
+          <p><strong>Percentile:</strong> ${safePeerBenchmark?.percentile}</p>
+<p><strong>Narrative:</strong> ${safePeerBenchmark?.narrative}</p>
         </div>
       </div>
 
@@ -1366,7 +1366,7 @@ useEffect(() => {
           </div>
           <div class="insight-text">
             <ul>
-              ${safePeerBenchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+              ${safePeerBenchmark?.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
             </ul>
           </div>
         </div>
@@ -1384,7 +1384,7 @@ useEffect(() => {
     <h2>90-Day Personalized Roadmap</h2>
   </div>
   
-  ${actionPlan && Array.isArray(actionPlan) ?
+  ${
     actionPlan.map((phase, phaseIndex) => {
       const dayMilestone = (phaseIndex + 1) * 30;
       const startingWeek = phaseIndex * 4 + 1;
@@ -1409,8 +1409,7 @@ useEffect(() => {
             <strong>Milestone by Day ${dayMilestone}:</strong> ${phase.milestone || 'Not specified'}
           </div>
         </div>`;
-    }).join('') :
-    '<p>Action plan not available.</p>'
+    }).join('') 
   }
 </div>
 
@@ -1422,7 +1421,7 @@ useEffect(() => {
     <h2>Recommended Resources</h2>
   </div>
   <div class="insights-section">
-    ${growthSources && Array.isArray(growthSources) ? 
+    ${ 
       growthSources.map(source => `
         <div class="insight-card">
           <div class="insight-header">
@@ -1437,8 +1436,7 @@ useEffect(() => {
             ${source.link ? `🔗 <a href="${source.link}" target="_blank">${source.link}</a>` : ''}
           </div>
         </div>
-      `).join('') : 
-      '<p>No recommended resources available.</p>'
+      `).join('')
     }
   </div>
 </div>
@@ -1449,7 +1447,7 @@ useEffect(() => {
   </div>
 
   <div class="insights-section">
-    ${momentumToolkit && Array.isArray(momentumToolkit) && momentumToolkit.length > 0 ? 
+    ${ 
       momentumToolkit.map((tool, index) => `
         <div class="insight-card">
           <div class="insight-header">
@@ -1462,8 +1460,7 @@ useEffect(() => {
             ${tool.link ? `<p><strong>Explore:</strong> <a href="${tool.link}" target="_blank">${tool.link}</a></p>` : ''}
           </div>
         </div>
-      `).join('') : 
-      '<p>No quick actions found.</p>'
+      `).join('')
     }
   </div>
 </div>
@@ -1474,9 +1471,7 @@ useEffect(() => {
   </div>
 
   <div class="insights-section">
-    ${
-      Array.isArray(growthOpportunities) && growthOpportunities.length > 0
-        ? growthOpportunities.map((opportunity, index) => `
+    ${growthOpportunities.map((opportunity, index) => `
           <div class="insight-card">
             <div class="insight-header">
               <span>🎯</span>
@@ -1487,9 +1482,8 @@ useEffect(() => {
               <p><strong>Why Recommended:</strong> ${opportunity.why}</p>
             </div>
           </div>
-        `).join('')
-        : '<p>No growth opportunities found.</p>'
-    }
+        `).join('')}
+        
   </div>
 </div>
 
