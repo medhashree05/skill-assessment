@@ -433,7 +433,7 @@ useEffect(() => {
 
       const data = await res.json();
       console.log("peer benchmark ",data)
-      setPeerBenchmark(data.peer_benchmark);
+      setPeerBenchmark(data);
     } catch (err) {
       console.error("Peer benchmark error:", err);
       setPeerBenchmarkError("Failed to fetch peer benchmark");
@@ -1346,12 +1346,12 @@ useEffect(() => {
           <h4>Benchmark Summary</h4>
         </div>
         <div class="insight-text">
-          <p><strong>Percentile:</strong> ${peerBenchmark.percentile || 'Not available'}</p>
-          <p><strong>Narrative:</strong> ${peerBenchmark.narrative || 'Not available'}</p>
+          <p><strong>Percentile:</strong> ${peerBenchmark.peer_benchmark.percentile || 'Not available'}</p>
+          <p><strong>Narrative:</strong> ${peerBenchmark.peer_benchmark.narrative || 'Not available'}</p>
         </div>
       </div>
 
-      ${peerBenchmark.in_demand_traits && Array.isArray(peerBenchmark.in_demand_traits) ? `
+      ${peerBenchmark.peer_benchmark.in_demand_traits && Array.isArray(peerBenchmark.in_demand_traits) ? `
         <div class="insight-card">
           <div class="insight-header">
             <span>🧠</span>
@@ -1359,28 +1359,13 @@ useEffect(() => {
           </div>
           <div class="insight-text">
             <ul>
-              ${peerBenchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+              ${peerBenchmarkpeer_benchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
             </ul>
           </div>
         </div>
       ` : ''}
 
-      ${peerBenchmark.sources && Array.isArray(peerBenchmark.sources) ? `
-        <div class="insight-card">
-          <div class="insight-header">
-            <span>🔗</span>
-            <h4>Source References</h4>
-          </div>
-          <div class="insight-text">
-            <ul>
-              ${peerBenchmark.sources.map(source => {
-                const link = source.split(' – ').pop();
-                return `<li>🔍 <a href="${link}" target="_blank">${source}</a></li>`;
-              }).join('')}
-            </ul>
-          </div>
-        </div>
-      ` : ''}
+      
       </div>
 </div>
           
