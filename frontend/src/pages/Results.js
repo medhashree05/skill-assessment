@@ -13,10 +13,8 @@ function Results() {
   const location = useLocation();
   const navigate = useNavigate();
   const userInfo = location.state?.userInfo;
-  
-  // Use useRef to track if tooltips have been fetched
   const tooltipsFetched = useRef(false);
-  
+ 
   const skillIcons = { 
     "Cognitive & Creative Skills": <LuBrain />,
     "Work & Professional Behavior": <MdOutlineWorkOutline />,
@@ -24,7 +22,7 @@ function Results() {
     "Personal Management & Wellness": <GiHealthPotion />,
     "Family & Relationships": <MdFamilyRestroom />
   };
-
+ 
   const dummyMarketScores = {
     "Cognitive & Creative Skills": 65,
     "Work & Professional Behavior": 70,
@@ -48,29 +46,36 @@ function Results() {
   const [tooltips, setTooltips] = useState({});
   const [loadingTooltips, setLoadingTooltips] = useState(false);
   const [growthProjection, setGrowthProjection] = useState(null);
-const [loadingGrowth, setLoadingGrowth] = useState(false);
-const [growthError, setGrowthError] = useState(null);
-const growthFetched = useRef(false);
-const [marketAnalysis, setMarketAnalysis] = useState(null);
-const [loadingMarketAnalysis, setLoadingMarketAnalysis] = useState(false);
-const [marketAnalysisError, setMarketAnalysisError] = useState(null);
-const marketAnalysisFetched = useRef(false);
-const [peerBenchmark, setPeerBenchmark] = useState(null);
-const [loadingPeerBenchmark, setLoadingPeerBenchmark] = useState(false);
-const [peerBenchmarkError, setPeerBenchmarkError] = useState(null);
-const peerBenchmarkFetched = useRef(false);
-const [actionPlan, setActionPlan] = useState(null);
-const [loadingActionPlan, setLoadingActionPlan] = useState(false);
-const [actionPlanError, setActionPlanError] = useState(null);
-const actionPlanFetched = useRef(false);
-const [growthSources, setGrowthSources] = useState(null);
-const [loadingGrowthSources, setLoadingGrowthSources] = useState(false);
-const [growthSourcesError, setGrowthSourcesError] = useState(null);
-const growthSourcesFetched = useRef(false);
+  const [loadingGrowth, setLoadingGrowth] = useState(false);
+  const [growthError, setGrowthError] = useState(null);
+  const growthFetched = useRef(false);
+  const [marketAnalysis, setMarketAnalysis] = useState(null);
+  const [loadingMarketAnalysis, setLoadingMarketAnalysis] = useState(false);
+  const [marketAnalysisError, setMarketAnalysisError] = useState(null);
+  const marketAnalysisFetched = useRef(false);
+  const [peerBenchmark, setPeerBenchmark] = useState(null);
+  const [loadingPeerBenchmark, setLoadingPeerBenchmark] = useState(false);
+  const [peerBenchmarkError, setPeerBenchmarkError] = useState(null);
+  const peerBenchmarkFetched = useRef(false);
+  const [actionPlan, setActionPlan] = useState(null);
+  const [loadingActionPlan, setLoadingActionPlan] = useState(false);
+  const [actionPlanError, setActionPlanError] = useState(null);
+  const actionPlanFetched = useRef(false);
+  const [growthSources, setGrowthSources] = useState(null);
+  const [loadingGrowthSources, setLoadingGrowthSources] = useState(false);
+  const [growthSourcesError, setGrowthSourcesError] = useState(null);
+  const growthSourcesFetched = useRef(false);
+  const [momentumToolkit, setMomentumToolkit] = useState([]);
+const [loadingMomentum, setLoadingMomentum] = useState(false);
+const [momentumError, setMomentumError] = useState(null);
+const momentumFetched = useRef(false);
+const [growthOpportunities, setGrowthOpportunities] = useState([]);
+const [loadingGrowthOpportunities, setLoadingGrowthOpportunities] = useState(false);
+const growthOpportunitiesFetched = useRef(false);
+const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
 
 
 
-  // Memoize calculations to prevent recalculation on every render
   const calculatedData = useMemo(() => {
     const openEndedCategoryScores = {};
     openEndedScores.forEach(scoreObj => {
@@ -330,8 +335,8 @@ skillsData.forEach(skill => {
       },
       final_score: Number(totalScore || 0),
       overall_percentage: calculatedData.percentage || 0,
-      tier: growthProjection?.tier || "Emerging Talent", // fallback if growthProjection isn't ready
-      percentile: growthProjection?.percentile || 50,     // fallback value
+      tier: growthProjection?.growth_projection?.tier || "Emerging Talent",
+      percentile: growthProjection?.growth_projection?.peer_percentile || 50.0,
       strengths: barChartData
         .filter(skill => skill.value >= 65)
         .map(skill => skill.label),
@@ -427,6 +432,7 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      console.log("peer benchmark ",data)
       setPeerBenchmark(data.peer_benchmark);
     } catch (err) {
       console.error("Peer benchmark error:", err);
@@ -438,6 +444,59 @@ useEffect(() => {
 
   fetchPeerBenchmark();
 }, [userInfo, barChartData, calculatedData.percentage,calculatedData.openEndedCategoryAverages]);
+
+// Add this function after your imports
+const parseRoadmapText = (roadmapText) => {
+  if (!roadmapText) return [];
+  
+  const phases = [];
+  
+  // Split by phase headers (### PHASE X)
+  const phaseMatches = roadmapText.split(/### PHASE \d+/);
+  
+  // Remove the first element (title) and process each phase
+  for (let i = 1; i < phaseMatches.length; i++) {
+    const phaseContent = phaseMatches[i];
+    
+    // Extract phase title
+    const titleMatch = phaseContent.match(/\([^)]+\)\s*–\s*([^\n]+)/);
+    const title = titleMatch ? titleMatch[1].trim() : `Phase ${i}`;
+    
+    // Extract focus areas
+    const focusMatch = phaseContent.match(/\*\*Focus Areas:\*\*\s*([^*]+?)(?=\*\*Weekly Actions:\*\*)/s);
+    const focus = focusMatch ? focusMatch[1].trim().replace(/\n/g, ' ') : 'Not specified';
+    
+    // Extract weekly actions
+    const weeklyActionsMatch = phaseContent.match(/\*\*Weekly Actions:\*\*\s*(.*?)(?=\*\*Milestone)/s);
+    let weeklyActions = [];
+    
+    if (weeklyActionsMatch) {
+      const actionsText = weeklyActionsMatch[1];
+      // Match each week entry
+      const weekMatches = actionsText.match(/Week \d+:[^-]+?(?=Week \d+:|$)/gs);
+      if (weekMatches) {
+        weeklyActions = weekMatches.map(week => 
+          week.replace(/^\s*-\s*/, '').trim().replace(/\n\s*/g, ' ')
+        );
+      }
+    }
+    
+    // Extract milestone
+    const milestoneMatch = phaseContent.match(/\*\*Milestone by Day \d+:\*\*\s*([^"]*?)(?:\n|$)/s);
+    const milestone = milestoneMatch ? milestoneMatch[1].trim() : 'Not specified';
+    
+    phases.push({
+      title,
+      focus,
+      weekly_actions: weeklyActions,
+      milestone
+    });
+  }
+  
+  return phases;
+};
+
+
 useEffect(() => {
   const fetchActionPlan = async () => {
     if (
@@ -452,10 +511,28 @@ useEffect(() => {
 
     const mcqScores = {};
     const openScores = {};
+    const marketBenchmarks = {};
 
     barChartData.forEach(item => {
       mcqScores[item.label] = categoryScores[item.label] || 0;
       openScores[item.label] = calculatedData.openEndedCategoryAverages[item.label] || 0;
+      marketBenchmarks[item.label] = item.market || 65;
+    });
+    
+    const strongCategories = [];
+    const moderateCategories = [];
+    const weakCategories = [];
+
+    barChartData.forEach(item => {
+      const key = item.label;
+      const score = item.value || 0;
+      if (score >= 65) {
+        strongCategories.push(key);
+      } else if (score >= 50) {
+        moderateCategories.push(key);
+      } else {
+        weakCategories.push(key);
+      }
     });
 
     const payload = {
@@ -473,8 +550,10 @@ useEffect(() => {
       },
       mcq_scores: mcqScores,
       open_scores: openScores,
-      strong_categories: barChartData.filter(item => item.value >= 65).map(item => item.label),
-      weak_categories: barChartData.filter(item => item.value < 50).map(item => item.label)
+      strong_categories: strongCategories,
+      moderate_categories: moderateCategories,
+      weak_categories: weakCategories,
+      market_benchmarks: marketBenchmarks
     };
 
     try {
@@ -487,7 +566,14 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
-      setActionPlan(data.action_plan);
+      console.log("action plan", data);
+       setActionPlan(data.action_plan);
+      
+      // Parse the roadmap_text into actionPlan format
+    // Parse the roadmap_text into actionPlan format
+const parsedActionPlan = parseRoadmapText(data.roadmap_text);
+setActionPlan(parsedActionPlan);
+      
     } catch (err) {
       console.error("Action plan error:", err);
       setActionPlanError("Failed to fetch action plan");
@@ -511,6 +597,29 @@ useEffect(() => {
     setLoadingGrowthSources(true);
     setGrowthSourcesError(null);
 
+    const weakCategories = [];
+    const moderateCategories = [];
+    const strongCategories = [];
+    const combinedScores = {};
+
+
+     barChartData.forEach(item => {
+      const apiLabel = item.label;
+      const score1 = categoryScores[item.label] || 0;
+      const score2 = calculatedData.openEndedCategoryAverages[item.label] || 0;
+      const avg = (score1 + score2) / 2;
+
+      combinedScores[apiLabel] = Number(avg.toFixed(1));
+
+      if (item.value < 50) {
+        weakCategories.push(apiLabel);
+      } else if (item.value < 65) {
+        moderateCategories.push(apiLabel);
+      } else {
+        strongCategories.push(apiLabel);
+      }
+    });
+
     const payload = {
       user_data: {
        name: userInfo.fullName || "Anonymous",
@@ -524,8 +633,10 @@ useEffect(() => {
           : (userInfo.interests || []),
         career_goal: userInfo.careerGoals || userInfo.aspiration || ""
       },
-      weak_categories: barChartData.filter(item => item.value < 50).map(item => item.label),
-      strong_categories: barChartData.filter(item => item.value >= 65).map(item => item.label),
+      weak_categories: weakCategories,
+      moderate_categories: moderateCategories,
+      strong_categories: strongCategories,
+      combined_scores: combinedScores,
       projection: {
   growth_projection: {
     "current_score": growthProjection.current_score,
@@ -547,6 +658,7 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      console.log("growth resources",data)
       setGrowthSources(data.sources);
     } catch (err) {
       console.error("Growth sources error:", err);
@@ -559,6 +671,110 @@ useEffect(() => {
   fetchGrowthSources();
 }, [userInfo, growthProjection, barChartData]);
 
+useEffect(() => {
+  const fetchMomentumToolkit = async () => {
+    if (momentumFetched.current) return;
+
+    momentumFetched.current = true;
+    setLoadingMomentum(true);
+    setMomentumError(null);
+
+    try {
+      const res = await fetch("http://localhost:8000/generate_momentum_toolkit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      console.log("tool kit",data)
+      setMomentumToolkit(data.momentum_toolkit);
+    } catch (err) {
+      console.error("Momentum Toolkit fetch error:", err);
+      setMomentumError("Failed to load quick actions");
+    } finally {
+      setLoadingMomentum(false);
+    }
+  };
+
+  fetchMomentumToolkit();
+}, []);
+useEffect(() => {
+  const fetchGrowthOpportunities = async () => {
+    if (
+      growthFetched.current ||  
+      !userInfo ||
+      barChartData.length === 0
+    ) return;
+
+    growthFetched.current = true; // ❌ WRONG REF
+    // ... rest of the code
+  };
+}, [userInfo, barChartData]);
+
+// AFTER (FIXED):
+useEffect(() => {
+  const fetchGrowthOpportunities = async () => {
+    if (
+      growthOpportunitiesFetched.current || // ✅ CORRECT REF
+      !userInfo ||
+      barChartData.length === 0
+    ) return;
+
+    growthOpportunitiesFetched.current = true; // ✅ CORRECT REF
+    setLoadingGrowthOpportunities(true);
+    setGrowthOpportunitiesError(null);
+
+    const scores = {};
+    const benchmarks = {};
+
+    barChartData.forEach(item => {
+      scores[item.label] = categoryScores[item.label] || 0;
+      benchmarks[item.label] = item.market || 65;
+    });
+
+    const payload = {
+      user_profile: {
+        name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      scores,
+      benchmarks
+    };
+
+    try {
+      const res = await fetch("http://localhost:8000/generate_growth_opportunities", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+
+      const data = await res.json();
+      console.log("opportunities", data);
+      setGrowthOpportunities(data.opportunities); // ✅ Access .opportunities from response
+    } catch (err) {
+      console.error("Growth Opportunities error:", err);
+      setGrowthOpportunitiesError("Failed to fetch personalized growth opportunities");
+    } finally {
+      setLoadingGrowthOpportunities(false);
+    }
+  };
+
+  fetchGrowthOpportunities();
+}, [userInfo, barChartData]);
+
+  
 
   // Helper functions (memoized to prevent recreation on every render)
   const getPerformanceLevel = useCallback((score) => {
@@ -1115,108 +1331,177 @@ useEffect(() => {
                 </div>
 
            
-${peerBenchmark ? `
+
     <div class="section">
-        <div class="section-header">
-            <span>📊</span>
-            <h2>Peer Benchmark</h2>
+  <div class="section-header">
+    <span>📊</span>
+    <h2>Peer Benchmark</h2>
+  </div>
+
+  <div class="insights-section">
+    
+      <div class="insight-card">
+        <div class="insight-header">
+          <span>📈</span>
+          <h4>Benchmark Summary</h4>
         </div>
-
-        <div class="insights-section">
-            <div class="insight-card">
-                <div class="insight-header">
-                    <span>📈</span>
-                    <h4>Benchmark Summary</h4>
-                </div>
-                <p><strong>Percentile:</strong> ${peerBenchmark.percentile}</p>
-                <p><strong>Narrative:</strong> ${peerBenchmark.narrative}</p>
-            </div>
-
-            <div class="insight-card">
-                <div class="insight-header">
-                    <span>🧠</span>
-                    <h4>In-Demand Traits</h4>
-                </div>
-                <ul>
-                    ${peerBenchmark["in_demand_traits"].map(trait => `
-                        <li>✅ ${trait}</li>
-                    `).join('')}
-                </ul>
-            </div>
-
-            <div class="insight-card">
-                <div class="insight-header">
-                    <span>🔗</span>
-                    <h4>Source References</h4>
-                </div>
-                <ul>
-                    ${peerBenchmark["sources"].map(source => `
-                        <li>🔍 <a href="${source.split(' – ').pop()}" target="_blank">${source}</a></li>
-                    `).join('')}
-                </ul>
-            </div>
+        <div class="insight-text">
+          <p><strong>Percentile:</strong> ${peerBenchmark.percentile || 'Not available'}</p>
+          <p><strong>Narrative:</strong> ${peerBenchmark.narrative || 'Not available'}</p>
         </div>
-    </div>
-` : ''}
+      </div>
+
+      ${peerBenchmark.in_demand_traits && Array.isArray(peerBenchmark.in_demand_traits) ? `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>🧠</span>
+            <h4>In-Demand Traits</h4>
+          </div>
+          <div class="insight-text">
+            <ul>
+              ${peerBenchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      ` : ''}
+
+      ${peerBenchmark.sources && Array.isArray(peerBenchmark.sources) ? `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>🔗</span>
+            <h4>Source References</h4>
+          </div>
+          <div class="insight-text">
+            <ul>
+              ${peerBenchmark.sources.map(source => {
+                const link = source.split(' – ').pop();
+                return `<li>🔍 <a href="${link}" target="_blank">${source}</a></li>`;
+              }).join('')}
+            </ul>
+          </div>
+        </div>
+      ` : ''}
+      </div>
+</div>
+          
 
            
+          <div class="section">
+  <div class="section-header">
+    <span>🎯</span>
+    <h2>90-Day Personalized Roadmap</h2>
+  </div>
+  
+  ${actionPlan && Array.isArray(actionPlan) ?
+    actionPlan.map((phase, phaseIndex) => {
+      const dayMilestone = (phaseIndex + 1) * 30;
+      const startingWeek = phaseIndex * 4 + 1;
+      
+      return `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>📌</span>
+            <h4>PHASE ${phaseIndex + 1} (${dayMilestone - 29}–${dayMilestone} Days) – ${phase.title || 'Phase ' + (phaseIndex + 1)}</h4>
+          </div>
+          <div class="insight-text">
+            <strong>Focus Areas:</strong> ${phase.focus || 'Not specified'}<br/><br/>
+            <strong>Weekly Actions:</strong>
+            <ul>
+              ${Array.isArray(phase.weekly_actions) ?
+                phase.weekly_actions.map((action, index) => `
+                  <li>📅 Week ${startingWeek + index}: ${action}</li>
+                `).join('') :
+                '<li>No actions specified.</li>'
+              }
+            </ul>
+            <strong>Milestone by Day ${dayMilestone}:</strong> ${phase.milestone || 'Not specified'}
+          </div>
+        </div>`;
+    }).join('') :
+    '<p>Action plan not available.</p>'
+  }
+</div>
 
-            ${actionPlan ? `
-            <div class="section">
-                <div class="section-header">
-                    <span>🎯</span>
-                    <h2>90-Day Action Plan</h2>
-                </div>
-                <div class="insights-section">
-                    ${Object.entries(actionPlan).map(([levelGroup, items]) => `
-                        <div class="insight-card">
-                            <div class="insight-header">
-                                <span>📌</span>
-                                <h4>${levelGroup}</h4>
-                            </div>
-                            <table class="action-table">
-                                <thead>
-                                    <tr>
-                                        <th>Skill Cluster</th>
-                                        <th>Your Level</th>
-                                        <th>Suggested Actions & Tools</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${items.map(item => `
-                                        <tr>
-                                            <td>${item["Skill Cluster"]}</td>
-                                            <td>${item["Your Level"]}</td>
-                                            <td>${item["Suggested Actions & Tools"]}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            ` : ''}
 
-            ${growthSources ? `
+            
             <div class="section">
-                <div class="section-header">
-                    <span>📚</span>
-                    <h2>Recommended Resources</h2>
-                </div>
-                <div class="insights-section">
-                    ${Object.entries(growthSources).map(([timeframe, description]) => `
-                        <div class="insight-card">
-                            <div class="insight-header">
-                                <span>${timeframe === 'Current' ? '⏱️' : timeframe === '3 Months' ? '⏳' : timeframe === '6 Months' ? '📈' : '🚀'}</span>
-                                <h4>${timeframe}</h4>
-                            </div>
-                            <div class="insight-text">${description}</div>
-                        </div>
-                    `).join('')}
-                </div>
+  <div class="section-header">
+    <span>📚</span>
+    <h2>Recommended Resources</h2>
+  </div>
+  <div class="insights-section">
+    ${growthSources && Array.isArray(growthSources) ? 
+      growthSources.map(source => `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>📘</span>
+            <h4>${source.category || 'Resource'}</h4>
+          </div>
+          <div class="insight-text">
+            <strong>${source.title || 'Title not available'}</strong><br/>
+            ${source.why || 'Description not available'}<br/>
+            ⏱️ <em>${source.duration || 'Duration not specified'}</em><br/>
+            ✅ <em>${source.outcome || 'Outcome not specified'}</em><br/>
+            ${source.link ? `🔗 <a href="${source.link}" target="_blank">${source.link}</a>` : ''}
+          </div>
+        </div>
+      `).join('') : 
+      '<p>No recommended resources available.</p>'
+    }
+  </div>
+</div>
+          <div class="section">
+  <div class="section-header">
+    <span>⚙️</span>
+    <h2>Momentum Toolkit</h2>
+  </div>
+
+  <div class="insights-section">
+    ${momentumToolkit && Array.isArray(momentumToolkit) && momentumToolkit.length > 0 ? 
+      momentumToolkit.map((tool, index) => `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>🛠️</span>
+            <h4>Tool ${index + 1}</h4>
+          </div>
+          <div class="insight-text">
+            <p><strong>Name:</strong> ${tool.name || 'Tool name not available'}</p>
+            <p><strong>Purpose:</strong> ${tool.description || 'Description not available'}</p>
+            ${tool.link ? `<p><strong>Explore:</strong> <a href="${tool.link}" target="_blank">${tool.link}</a></p>` : ''}
+          </div>
+        </div>
+      `).join('') : 
+      '<p>No quick actions found.</p>'
+    }
+  </div>
+</div>
+<div class="section">
+  <div class="section-header">
+    <span>🌱</span>
+    <h2>Growth Opportunities</h2>
+  </div>
+
+  <div class="insights-section">
+    ${
+      Array.isArray(growthOpportunities) && growthOpportunities.length > 0
+        ? growthOpportunities.map((opportunity, index) => `
+          <div class="insight-card">
+            <div class="insight-header">
+              <span>🎯</span>
+              <h4>${opportunity.category}</h4>
             </div>
-            ` : ''}
+            <div class="insight-text">
+              <p><strong>Opportunity:</strong> ${opportunity.opportunity}</p>
+              <p><strong>Why Recommended:</strong> ${opportunity.why}</p>
+            </div>
+          </div>
+        `).join('')
+        : '<p>No growth opportunities found.</p>'
+    }
+  </div>
+</div>
+
+            
 
             
             
@@ -1224,7 +1509,7 @@ ${peerBenchmark ? `
     </div>
 </body>
 </html>`;
-}, [percentage, strongestSkill, skillsData, percentileText, percentileNumber, salaryRangeINR, salaryRangeUSD, userInfo, totalMCQs, getPerformanceLevel, getMarketPercentile, growthProjection, peerBenchmark, actionPlan, growthSources]);
+}, [percentage, strongestSkill, skillsData, percentileText, percentileNumber, salaryRangeINR, salaryRangeUSD, userInfo, totalMCQs, getPerformanceLevel, getMarketPercentile, growthProjection, peerBenchmark, actionPlan, growthSources,growthOpportunities ]);
 
   return (
     <div className="results-container">
@@ -1292,7 +1577,7 @@ ${peerBenchmark ? `
 
 
       </div>
-
+        
       <div className="analysis-grid">
         <div className="analysis-card">
       <div className="card-header">

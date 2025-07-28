@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import List
@@ -8,8 +9,10 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import json  
 import re
-from typing import Dict 
+from typing import Dict  
 from typing import Optional
+from google.oauth2 import service_account  
+import random
 
 load_dotenv() 
 
@@ -30,16 +33,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    
 )
 
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "gemini-testing-2-466506-6087cde29f81.json"
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+gemini_model = genai.GenerativeModel("gemini-2.5-flash")
 
-# Configure Gemini
-genai.configure()
-gemini_model = genai.GenerativeModel("gemini-2.0-flash")
-
-# Load questions once on startup
 def load_questions():
     df = pd.read_csv("Assessment_chat_v2.csv")
     if 'ID' not in df.columns:
@@ -57,8 +55,6 @@ class UserProfile(BaseModel):
     exp_level: Optional[str]
     career_goal: Optional[str]
     interests: Optional[List[str]]
-    
-
 
 class MCQScoreDict(BaseModel):
     Cognitive_and_Creative_Skills: int
@@ -100,7 +96,7 @@ User Profile:
 - Field of Study/Profession: {req.user_profile.field}
 - Interests: {', '.join(req.user_profile.interests)}
 - Aspirations: {req.user_profile.career_goal}
-
+              
 MCQ Scores by Category (0–100):
 {{
   "Cognitive & Creative Skills": {req.mcq_scores.Cognitive_and_Creative_Skills},
@@ -301,14 +297,28 @@ Return in JSON format:
             "benchmark_tooltip": f"Top performers score {req.benchmark_score}% in {req.category}. Practice consistently to reach that level."
         }
 
+
 class GrowthProjectionRequest(BaseModel):
     user_data: UserProfile
     user_scores: Dict[str, float]
     benchmark_scores: Dict[str, float]
 
+def get_tier_label(score: float) -> str:
+    if score >= 85:
+        return "Top Talent"
+    elif score >= 70:
+        return "Emerging Leader"
+    elif score >= 55:
+        return "Skilled Contributor"
+    else:
+        return "Emerging Talent"
+
 @app.post("/generate_growth_projection")
 def generate_growth_projection(req: GrowthProjectionRequest):
-    """AI-Driven Career Growth Projection Generator"""
+    """AI-Driven Career Growth Projection Generator using Gemini"""
+
+    avg_score = sum(req.user_scores.values()) / len(req.user_scores) if req.user_scores else 0
+    tier = get_tier_label(avg_score)
 
     prompt = f"""
 ## ROLE
@@ -323,31 +333,35 @@ Profile:
 Assessment Data:
 - User Scores (0-100 scale): {json.dumps(req.user_scores)}
 - Market Benchmarks (0-100 scale): {json.dumps(req.benchmark_scores)}
-    
+
 ### TASKS:
 1. Calculate the following strictly using reasoning:
    - Current Score (average of user scores)
    - Projected Scores (3, 6, 12 months) assuming realistic growth if user follows best practices
    - Peer Percentile (estimated relative to benchmarks, 1–99%)
+   - Assign a Tier: "Top Talent", "Emerging Leader", "Skilled Contributor", or "Emerging Talent"
+
 2. Write a **3-sentence motivational summary**:
    - Highlight weakest skill categories
    - Show connection to their career goal
    - Encourage percentile growth
+
 3. Suggest **exactly 3 actionable steps** (max 15 words each):
    - Be measurable, specific, and role-relevant
    - Use strong action verbs (Complete, Practice, Build, Analyze, Join)
-    
+
 ### RULES:
 - DO NOT make up random numbers—base projections logically on score gaps vs benchmarks.
 - Use realistic, human-like advice (no generic statements).
 - Respond ONLY in this JSON structure:
 {{
   "growth_projection": {{
-    "current_score": <float>,
+    "current_score": {avg_score:.1f},
     "3_months": <float>,
     "6_months": <float>,
     "12_months": <float>,
-    "peer_percentile": <float>
+    "peer_percentile": <float>,
+    "tier": "{tier}"
   }},
   "growth_summary": "Your 3-sentence motivational text here.",
   "action_steps": [
@@ -359,7 +373,6 @@ Assessment Data:
 """
 
     try:
-        # Replace this with your actual model call (Gemini or DeepSeek)
         response = gemini_model.generate_content(prompt)
         raw_text = response.text.strip()
         print("Raw Gemini growth response:", raw_text)
@@ -367,27 +380,26 @@ Assessment Data:
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
         json_data = json.loads(clean_text)
 
-        # Basic validation
         if "growth_projection" not in json_data:
-            raise HTTPException(status_code=500, detail="Missing 'growth_projection' in response")
+            raise ValueError("Missing 'growth_projection' in response")
 
         return json_data
 
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini API response")
     except Exception as e:
-        # Fallback logic if API fails or is empty
-        user_scores = req.user_scores
-        current_score = sum(user_scores.values()) / len(user_scores) if user_scores else 0
+        print(f"[ERROR] Gemini growth projection failed: {str(e)}")
+
+        # Fallback response
+        current_score = avg_score
         return {
             "growth_projection": {
                 "current_score": round(current_score, 1),
                 "3_months": round(current_score * 1.05, 1),
                 "6_months": round(current_score * 1.10, 1),
                 "12_months": round(current_score * 1.15, 1),
-                "peer_percentile": 60.0
+                "peer_percentile": 60.0,
+                "tier": tier
             },
-            "growth_summary": "Focus on closing skill gaps to advance steadily in your career path.",
+            "growth_summary": "Focus on closing key gaps to accelerate toward your career target. You're on track!",
             "action_steps": [
                 "Complete 1 hands-on project this month",
                 "Practice weekly domain-specific challenges",
@@ -395,6 +407,7 @@ Assessment Data:
             ]
         }
     
+
 class MarketAnalysisRequest(BaseModel):
     user_profile: UserProfile
     final_score: float
@@ -407,82 +420,103 @@ class MarketAnalysisRequest(BaseModel):
 
 @app.post("/generate_market_analysis")
 def generate_market_analysis(req: MarketAnalysisRequest):
-    """Generate AI-driven market position analysis report"""
+    """Generate bullet-point formatted market position analysis using Gemini"""
+
+    score = req.final_score
+    # Optional: recompute tier based on score
+    if score < 40:
+        tier = "Emerging Talent"
+    elif score < 60:
+        tier = "Developing Professional"
+    elif score < 80:
+        tier = "Skilled Practitioner"
+    else:
+        tier = "Industry Expert"
 
     MARKET_ANALYSIS_PROMPT = f"""
-As a career advisor AI, generate a comprehensive market position analysis for a user based on their profile and assessment results.
+As a senior career strategist, generate a clear, **bullet-point formatted** market position analysis.
 
 [User Profile]
-Name: {req.user_profile.name}
-Education: {req.user_profile.education_level}
-Experience: {req.user_profile.exp_level}
-Professional Domain: {req.user_profile.domain}
-Career Goal: {req.user_profile.career_goal}
+- Name: {req.user_profile.name}
+- Education: {req.user_profile.education_level}
+- Experience Level: {req.user_profile.exp_level}
+- Professional Domain: {req.user_profile.domain}
+- Career Goal: {req.user_profile.career_goal}
 
 [Assessment Results]
-Overall Score: {req.final_score:.1f}/160 ({req.overall_percentage:.1f}%)
-Career Tier: {req.tier}
-Market Percentile: {req.percentile:.1f}% (ahead of peers)
-Strengths: {', '.join(req.strengths) if req.strengths else 'None'}
-Weaknesses: {', '.join(req.weaknesses) if req.weaknesses else 'None'}
+- Overall Score: {score:.1f}/100
+- Career Tier: {tier}
+- Market Percentile: {req.percentile:.1f}% (ahead of peers)
+- Strengths: {', '.join(req.strengths) if req.strengths else 'None'}
+- Weaknesses: {', '.join(req.weaknesses) if req.weaknesses else 'None'}
 
 [Market Benchmarks]
-""" + "\n".join([f"- {cat}: {score}%" for cat, score in req.benchmark_scores.items()]) + """
+{", ".join([f"{cat}: {val}%" for cat, val in req.benchmark_scores.items()])}
 
-Instructions:
-1. Generate equivalent experience based on tier and domain (e.g., "0-2 years" for Emerging Talent)
-2. Estimate salary range based on tier, experience, domain, and location norms
-3. Create personalized descriptions for each metric (2-3 sentences each)
-4. Generate an overall professional summary (2 sentences)
-5. Use professional, encouraging, and constructive language
+### TASK
+1. Convert every section into **3-4 crisp bullet points**, written in second person (e.g., "You demonstrate…").
+2. Be **personalized, motivational, and encouraging**.
+3. Make it sound like **an AI career mentor giving you feedback**.
+4. Use **numbers only when necessary** (e.g., percentile, years, salary).
+5. Keep sentences short, professional, and **visually scannable**.
 
-Return in JSON format:
-{
-    "tier": {
-        "label": "%s",
-        "description": "Personalized description of what this tier means"
-    },
-    "experience": {
-        "label": "Equivalent experience range",
-        "description": "Explanation of experience equivalence"
-    },
-    "percentile": {
-        "label": "Ahead of %.1f%% of peers",
-        "description": "Personalized interpretation of percentile"
-    },
-    "salary": {
-        "label": "Salary estimate",
-        "description": "Personalized salary explanation"
-    },
-    "overall_message": "2-sentence professional summary"
-}
-""" % (req.tier, req.percentile)
+### OUTPUT FORMAT (STRICT JSON)
+{{
+  "tier": {{
+    "label": "{tier}",
+    "bullets": ["...", "...", "..."]
+  }},
+  "experience": {{
+    "label": "Equivalent experience (e.g., 2-3 years)",
+    "bullets": ["...", "..."]
+  }},
+  "percentile": {{
+    "label": "Ahead of {req.percentile:.1f}% of peers",
+    "bullets": ["...", "..."]
+  }},
+  "salary": {{
+    "label": "Estimated salary range",
+    "bullets": ["...", "..."]
+  }},
+  "overall_message": ["...", "..."]
+}}
+"""
 
-    def get_fallback_market_analysis(tier, percentile):
+    def get_fallback_market_analysis():
         return {
             "tier": {
                 "label": tier,
-                "description": f"Your skills place you at the {tier} level in your field."
+                "bullets": [
+                    f"You are positioned as a {tier}, showcasing strong domain readiness.",
+                    "Your score reflects consistent performance across core competencies."
+                ]
             },
             "experience": {
-                "label": "1-2 years",
-                "description": "Your skills are comparable to professionals with 1–2 years of experience."
+                "label": "1-3 years",
+                "bullets": [
+                    "Your skill level matches early-career professionals with ~2 years of experience."
+                ]
             },
             "percentile": {
-                "label": f"Ahead of {percentile:.1f}% of peers",
-                "description": f"You outperform {percentile:.1f}% of professionals at your career stage."
+                "label": f"Ahead of {req.percentile:.1f}% of peers",
+                "bullets": [
+                    f"You outperform {req.percentile:.1f}% of peers in problem-solving and adaptability."
+                ]
             },
             "salary": {
-                "label": "$60K-$75K",
-                "description": "Typical salary range for professionals at your skill level."
+                "label": "$65K-$85K",
+                "bullets": [
+                    "Your current skills align with salary bands for high-performing early-career roles."
+                ]
             },
-            "overall_message": "You're making good progress in your career development. Focus on strengthening your weak areas to advance further.",
+            "overall_message": [
+                "You are on a strong growth trajectory.",
+                "Focus on weak areas to accelerate toward leadership roles."
+            ],
             "readiness_score": round(req.overall_percentage, 1)
         }
 
     try:
-       
-
         response = gemini_model.generate_content(MARKET_ANALYSIS_PROMPT)
         raw_text = response.text.strip()
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
@@ -497,8 +531,8 @@ Return in JSON format:
         }
 
     except Exception as e:
-        print(f"[ERROR] Gemini market analysis failure: {str(e)}")
-        return get_fallback_market_analysis(req.tier, req.percentile)
+        print(f"[ERROR] Gemini market analysis failed: {str(e)}")
+        return get_fallback_market_analysis()
     
 class PeerBenchmarkRequest(BaseModel):
     user_data: UserProfile
@@ -511,57 +545,55 @@ class PeerBenchmarkRequest(BaseModel):
 
 @app.post("/generate_peer_benchmark")
 def generate_peer_benchmark(req: PeerBenchmarkRequest):
-    """Generate peer benchmark and in-demand traits analysis report"""
+    """Generate peer benchmark and in-demand traits analysis report using Gemini"""
 
-    # Define the JSON format outside the f-string to avoid formatting issues
-    json_format = '''{
-  "peer_benchmark": {
-    "percentile": "Top 72% among peers in Data Science",
+    prompt = f"""
+## ROLE
+You are acting as a **career market intelligence analyst** for a skill-assessment platform.  
+Your goal: Generate **highly personalized, market-aligned insights** that compare the user's performance to peers and map their skills to in-demand industry traits.
+
+---
+
+## CONTEXT
+- Name: {req.user_data.name}
+- Domain: {req.user_data.domain}
+- Career Goal: {req.user_data.career_goal}
+- Experience Level: {req.user_data.exp_level}
+- Combined Score: {req.combined_score:.1f}/100
+- MCQ Scores: {json.dumps(req.mcq_scores)}
+- Open-Ended Scores: {json.dumps(req.open_scores)}
+- Strong Categories: {', '.join(req.strong_categories) or 'None'}
+- Weak Categories: {', '.join(req.weak_categories) or 'None'}
+- Benchmarks: {json.dumps(req.benchmarks)}
+
+---
+
+1. **Percentile Positioning**  
+   - Predict the user's skill percentile vs. peers in the same **domain & career goal** (e.g., "Top 72% among final-year AI engineering students").  
+   - Justify percentile using **peer performance trends or aggregated test-taker data**.
+
+2. **Peer Benchmark Narrative**  
+   - Write **2 engaging sentences** comparing the user to typical peers, highlighting both competitive edges and gaps.
+
+3. **In-Demand Traits Mapping**  
+   - Map **3 in-demand traits** (from current job market, internships, or hiring trends) to the user's strongest/weakest areas.  
+   - Be **specific** (e.g., "Your high score in Work Behavior aligns with demand for reliable agile team contributors").
+
+Return ONLY valid JSON in this format:
+{{
+  "peer_benchmark": {{
+    "percentile": "Top 72% among peers in {req.user_data.domain}",
     "narrative": "Your performance outpaces many peers in problem-solving, but lags in communication skills.",
     "in_demand_traits": [
       "Strong analytical thinking aligns with current hiring demand for data-driven roles",
       "Moderate teamwork scores limit opportunities in agile-based internships",
       "High learning agility matches rapid tech adoption trends in AI startups"
-    ],
-    "sources": [
-      "LinkedIn Talent Insights – 60% of data roles require analytical excellence – https://linkedin.com/...",
-      "NASSCOM 2024 Report – Agile teamwork is critical in 78% of tech internships – https://nasscom.in/...",
-      "WEF Future of Jobs – Learning agility tops emerging AI skills – https://weforum.org/..."
     ]
-  }
-}'''
-
-    PEER_BENCHMARK_PROMPT = f"""
-As a career market intelligence AI, generate a personalized benchmark and industry trait analysis based on a user's performance data and profile.
-
-[User Profile]
-- Name: {req.user_data.name}
-- Domain: {req.user_data.domain}
-- Career Goal: {req.user_data.career_goal}
-- Experience Level: {req.user_data.exp_level}
-
-[Assessment Summary]
-- Combined Score: {req.combined_score:.1f}/100
-- MCQ Scores: {json.dumps(req.mcq_scores)}
-- Open-Ended Scores: {json.dumps(req.open_scores)}
-- Strong Categories: {', '.join(req.strong_categories) if req.strong_categories else 'None'}
-- Weak Categories: {', '.join(req.weak_categories) if req.weak_categories else 'None'}
-
-[Benchmarks]
-{json.dumps(req.benchmarks, indent=2)}
-
-Instructions:
-1. Estimate the user's **percentile** relative to peers in the same domain and goal (e.g., "Top 72%").
-2. Write a **2-sentence narrative** comparing the user to typical peers, with strengths and improvement areas.
-3. Map **3 in-demand traits** from the job market to their skill strengths or gaps.
-4. Support your insight with **3 one-line industry references** in the format:
-   Source – Context – URL
-
-Return only valid JSON in this format:
-{json_format}
+  }}
+}}
 """
 
-    def get_fallback_peer_benchmark():
+    def fallback_response():
         return {
             "peer_benchmark": {
                 "percentile": "Top 70% among peers",
@@ -570,206 +602,466 @@ Return only valid JSON in this format:
                     "Technical proficiency matches industry requirements",
                     "Leadership skills align with management expectations",
                     "Strategic thinking could be improved for senior roles"
-                ],
-                "sources": [
-                    "LinkedIn Talent Insights – Industry skills report – https://linkedin.com",
-                    "WEF Future of Jobs – Key skills for 2025 – https://weforum.org",
-                    "McKinsey Global Institute – Career development paths – https://mckinsey.com"
                 ]
             }
         }
 
     try:
-        response = gemini_model.generate_content(PEER_BENCHMARK_PROMPT)
+        response = gemini_model.generate_content(prompt)
         raw_text = response.text.strip()
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        benchmark = json.loads(clean_text)
+        parsed = json.loads(clean_text)
 
-        if "peer_benchmark" not in benchmark:
+        if "peer_benchmark" not in parsed:
             raise ValueError("Missing 'peer_benchmark' key")
 
-        return benchmark
+        return parsed
 
     except Exception as e:
         print(f"[ERROR] Gemini peer benchmark failure: {str(e)}")
-        return get_fallback_peer_benchmark()
-
+        return fallback_response()
 
 class ActionPlanRequest(BaseModel):
     user_data: UserProfile
     mcq_scores: Dict[str, float]
     open_scores: Dict[str, float]
+    market_benchmarks: Dict[str, float]
     strong_categories: List[str]
+    moderate_categories: List[str]
     weak_categories: List[str]
 
 @app.post("/generate_action_plan")
 def generate_action_plan(req: ActionPlanRequest):
-    """Generate 90-day action plan with specific measurable steps"""
+    """Generate a personalized 90-day roadmap based on skill scores and benchmarks"""
 
-    # Define the example format outside the f-string to avoid formatting issues
-    example_format = '''
-{
-  "action_plan": {
-    "Weak Skills": [
-      {"Skill Cluster": "Category Name", "Your Level": "Weak", "Suggested Actions & Tools": "12-15 word measurable step"}
-    ],
-    "Moderate Skills": [
-      {"Skill Cluster": "Category Name", "Your Level": "Moderate", "Suggested Actions & Tools": "..."}
-    ],
-    "Strong Skills": [
-      {"Skill Cluster": "Category Name", "Your Level": "Strong", "Suggested Actions & Tools": "..."}
-    ]
-  }
-}'''
+    # Combine MCQ + Open scores → average per category
+    combined_scores = {}
+    for k in set(req.mcq_scores) | set(req.open_scores):
+        mcq = req.mcq_scores.get(k, 0)
+        open_ = req.open_scores.get(k, 0)
+        combined_scores[k] = round((mcq + open_) / 2, 1)
 
-    ACTION_PLAN_PROMPT = f"""
-As a senior career strategist and personalized skill coach, design a customized 90-day development plan based on the user's scores and goals.
+    # Average score
+    current_avg = np.mean(list(combined_scores.values()))
 
-[User Profile]
-- Name: {req.user_data.name}
-- Education Level: {req.user_data.education_level}
-- Experience Level: {req.user_data.exp_level}
-- Professional Domain: {req.user_data.domain}
-- Career Goal: {req.user_data.career_goal}
+    # Gemini prompt
+    prompt = f"""
+## ROLE  
+You are a **personalized career coach and skill strategist**.  
+Your task: **Design a hyper-personalized, practical 90-day career development roadmap** for a professional, based entirely on their **scores, benchmark gaps, and profile**.
 
-[Assessment Scores]
-- MCQ Scores: {json.dumps(req.mcq_scores)}
-- Open-Ended Scores: {json.dumps(req.open_scores)}
-- Strong Skill Areas: {', '.join(req.strong_categories) or 'None'}
-- Weak Skill Areas: {', '.join(req.weak_categories) or 'None'}
+---
 
-Instructions:
-1. Group skills into **Weak**, **Moderate**, and **Strong** based on scores.
-2. For each, provide 12–15 word **measurable and realistic** actions using tools, resources, or tasks.
-3. Keep actions specific and tailored to the career goal.
+## CONTEXT – User Data  
+Name: {req.user_data.name}  
+Education: {req.user_data.education_level}  
+Experience Level: {req.user_data.exp_level}  
+Professional Domain: {req.user_data.domain}  
+Career Goal: {req.user_data.career_goal}  
 
-Return strictly in this JSON format:
-{example_format}
+Current Overall Score: {current_avg:.1f}  
+Category-wise Scores vs Market Benchmarks:  
+{chr(10).join([
+    f"- {cat}: {combined_scores.get(cat, 0)} vs {req.market_benchmarks.get(cat, 'N/A')}"
+    for cat in combined_scores
+])}
+
+Strong Categories: {', '.join(req.strong_categories) or 'None'}  
+Moderate Categories: {', '.join(req.moderate_categories) or 'None'}  
+Weak Categories: {', '.join(req.weak_categories) or 'None'}  
+
+---
+
+## TASK – 90-Day Roadmap Only  
+
+✅ **STRICTLY output ONLY a 3-phase roadmap** (no ROI narrative, no extra sections).  
+✅ **Make it feel like a website-style career roadmap** → clean, simple, motivational.  
+✅ **Be extremely personalized**: Mention the user's domain, role, and specific skill gaps.  
+✅ **Use bullet points, short sentences, and practical weekly steps.**  
+✅ **Include measurable progress milestones.**  
+
+---
+
+### **OUTPUT FORMAT (STRICT)**
+
+90-DAY PERSONALIZED ROADMAP
+
+### PHASE 1 (0–30 Days) – [Motivational Title]
+- **Focus Areas:** [Specific weak categories & why (personalized)]
+- **Weekly Actions:**
+  - Week 1: [Specific step]
+  - Week 2: [Step]
+  - Week 3: [...]
+  - Week 4: [...]
+- **Milestone by Day 30:** [Score target or tangible skill achievement]
+
+### PHASE 2 (31–60 Days) – [Motivational Title]
+- **Focus Areas:** [Moderate skill clusters, why they matter for career goal]
+- **Weekly Actions:**
+  - Week 5: [...]
+  - Week 6: [...]
+  - Week 7: [...]
+  - Week 8: [...]
+- **Milestone by Day 60:** [Clear achievement]
+
+### PHASE 3 (61–90 Days) – [Motivational Title]
+- **Focus Areas:** [Strong categories → leadership & visibility, very role-specific]
+- **Weekly Actions:**
+  - Week 9: [...]
+  - Week 10: [...]
+  - Week 11: [...]
+  - Week 12: [...]
+- **Milestone by Day 90:** [E.g., "Score crosses 75%+, ready for mid-level role"]
+
+---
+
+## STYLE RULES
+- Be **personal, encouraging, and clear** (like talking directly to the user).
+- Avoid paragraphs – keep it **structured and scannable**.
+- **DO NOT** generate generic career roadmaps found online – strictly use **this user's data**.
+- No extra ROI text, no reporting metrics – **ONLY the roadmap**.
 """
 
-    def get_fallback_action_plan():
-        return {
-            "action_plan": {
-                "Weak Skills": [
-                    {
-                        "Skill Cluster": "Time Management",
-                        "Your Level": "Weak",
-                        "Suggested Actions & Tools": "Use Pomodoro method daily to improve focus and task efficiency"
-                    }
-                ],
-                "Moderate Skills": [
-                    {
-                        "Skill Cluster": "Communication",
-                        "Your Level": "Moderate",
-                        "Suggested Actions & Tools": "Join weekly Toastmasters to refine structured speaking and feedback"
-                    }
-                ],
-                "Strong Skills": [
-                    {
-                        "Skill Cluster": "Problem Solving",
-                        "Your Level": "Strong",
-                        "Suggested Actions & Tools": "Take lead on project sprints to apply logic under time pressure"
-                    }
-                ]
-            }
-        }
-
     try:
-        response = gemini_model.generate_content(ACTION_PLAN_PROMPT)
-        raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        action_plan = json.loads(clean_text)
-
-        if "action_plan" not in action_plan:
-            raise ValueError("Missing 'action_plan' key in Gemini response")
-
-        return action_plan
-
+        response = gemini_model.generate_content(prompt)
+        roadmap_text = response.text.strip()
+        return {"roadmap_text": roadmap_text}
     except Exception as e:
-        print(f"[ERROR] Gemini action plan generation failed: {str(e)}")
-        return get_fallback_action_plan()
+        print(f"[ERROR] Gemini 90-day roadmap generation failed: {str(e)}")
+        return {
+            "roadmap_text": """90-DAY PERSONALIZED ROADMAP
+
+### PHASE 1 (0–30 Days) – Build Foundation in Core Gaps
+- **Focus Areas:** Time Management, Data Interpretation
+- **Weekly Actions:**
+  - Week 1: Use Pomodoro timer daily
+  - Week 2: Analyze 1 dataset using Excel weekly
+  - Week 3: Practice case-based MCQs
+  - Week 4: Join 1 peer learning group
+- **Milestone by Day 30:** 20% score increase in 2 weakest categories
+
+### PHASE 2 (31–60 Days) – Strengthen for Career Goal
+- **Focus Areas:** Communication, Research
+- **Weekly Actions:**
+  - Week 5: Record weekly domain summary videos
+  - Week 6: Analyze 2 research papers
+  - Week 7: Write weekly reflection journal
+  - Week 8: Peer presentation or webinar
+- **Milestone by Day 60:** Public portfolio submission
+
+### PHASE 3 (61–90 Days) – Demonstrate Strengths with Visibility
+- **Focus Areas:** Leadership, Critical Thinking
+- **Weekly Actions:**
+  - Week 9: Lead 1 project meeting
+  - Week 10: Mentor a junior peer
+  - Week 11: Publish insight article
+  - Week 12: Pitch for internship/freelance role
+- **Milestone by Day 90:** Ready for higher responsibility or role transition"""
+        }
 
 class GrowthSourcesRequest(BaseModel):
     user_data: UserProfile
     weak_categories: List[str]
     strong_categories: List[str]
-    projection: Dict[str, Dict[str, float]]
+    moderate_categories: List[str]
+    combined_scores: Dict[str, float]
+
+# ==== HARD-CODED SOURCE LIBRARY ====
+
+RECOMMENDED_SOURCES = {
+    "Cognitive & Creative Skills": {
+        "below_70": {
+            "title": "Logical and Critical Thinking – University of Auckland",
+            "link": "https://www.futurelearn.com/courses/logical-and-critical-thinking",
+            "duration": "8 hrs (2 weeks)",
+            "outcome": "Strengthens logical reasoning and structured problem-solving"
+        },
+        "above_70": {
+            "title": "Deep Learning Fundamentals – Lightning AI",
+            "link": "https://lightning.ai/courses/deep-learning-fundamentals/",
+            "duration": "6 hrs (self-paced)",
+            "outcome": "Enhances creative problem-solving using modern AI techniques"
+        }
+    },
+    "Work & Professional Behavior": {
+        "below_70": {
+            "title": "Effective Time Management – Alison",
+            "link": "https://alison.com/course/time-management",
+            "duration": "3 hrs (self-paced)",
+            "outcome": "Improves task prioritization and daily work consistency"
+        },
+        "above_70": {
+            "title": "Leading Cross-Functional Teams – TrainingCred",
+            "link": "https://trainingcred.com/training-course/leading-cross-functional-collaboration",
+            "duration": "6 hrs (1 week)",
+            "outcome": "Develops collaboration & leadership skills for cross-team projects"
+        }
+    },
+    "Emotional & Social Competence": {
+        "below_70": {
+            "title": "Emotional Resilience at Work – Alison",
+            "link": "https://alison.com/course/introduction-to-resilience-training",
+            "duration": "2 hrs (self-paced)",
+            "outcome": "Builds resilience and emotional stability in workplace stress"
+        },
+        "above_70": {
+            "title": "Managing Emotions in Times of Stress – Yale University",
+            "link": "https://online.yale.edu/courses/managing-emotions-times-uncertainty-and-stress",
+            "duration": "6 hrs (self-paced)",
+            "outcome": "Improves emotional intelligence and adaptability in uncertain environments"
+        }
+    }
+}
+
+DEFAULT_RECOMMENDATIONS = [
+    {
+        "category": "General",
+        "title": "LinkedIn Learning: Career Development",
+        "link": "https://www.linkedin.com/learning",
+        "why": "Broad career development resources to strengthen your professional profile",
+        "duration": "Varies",
+        "outcome": "Improve key professional skills"
+    },
+    {
+        "category": "General",
+        "title": "Coursera: Professional Development Courses",
+        "link": "https://www.coursera.org",
+        "why": "High-quality courses to enhance your career skills",
+        "duration": "Varies",
+        "outcome": "Develop professional skills across multiple domains"
+    }
+]
+
+# ==== FUNCTION ====
+
+def generate_recommended_sources(user_data, weak_categories, moderate_categories, combined_scores):
+    recommendations = []
+    career_goal = user_data.get("career_goal", "your career goal")
+
+    # Prioritize weak categories
+    for category in weak_categories:
+        if len(recommendations) >= 3:
+            break
+        if category in RECOMMENDED_SOURCES:
+            score = combined_scores.get(category, 0)
+            tier = "below_70" if score < 70 else "above_70"
+            source = RECOMMENDED_SOURCES[category][tier]
+            recommendations.append({
+                "category": category,
+                "title": source["title"],
+                "link": source["link"],
+                "why": f"Your {category} score ({score:.1f}) needs improvement for {career_goal}",
+                "duration": source["duration"],
+                "outcome": source["outcome"]
+            })
+
+    # Add moderate if not enough
+    for category in moderate_categories:
+        if len(recommendations) >= 3:
+            break
+        if category in RECOMMENDED_SOURCES and category not in [r['category'] for r in recommendations]:
+            score = combined_scores.get(category, 0)
+            tier = "below_70" if score < 70 else "above_70"
+            source = RECOMMENDED_SOURCES[category][tier]
+            recommendations.append({
+    "category": category,
+    "title": source["title"],
+    "why": f"Your {category} score ({score:.1f}) needs improvement for {career_goal}",  # Map why -> description
+    "link": source["link"],
+    "duration": source["duration"],
+    "outcome": source["outcome"]
+})
+
+    # Fallback: add generic ones
+    if len(recommendations) < 2:
+        recommendations.extend(DEFAULT_RECOMMENDATIONS[:2 - len(recommendations)])
+
+    return recommendations[:3]
+
+# ==== ENDPOINT ====
 
 @app.post("/generate_growth_sources")
 def generate_growth_sources(req: GrowthSourcesRequest):
-    """Generate credible sources for growth projection"""
-
-    # Safely extract projection data with error handling
+    """Generate personalized growth sources based on skill scores"""
     try:
-        growth_proj = req.projection.get('growth_projection', {})
-        current_score = growth_proj.get('current_score', 0.0)
-        three_months = growth_proj.get('3_months', 0.0)
-        six_months = growth_proj.get('6_months', 0.0)
-        twelve_months = growth_proj.get('12_months', 0.0)
-    except (KeyError, AttributeError, TypeError) as e:
-        print(f"[ERROR] Error accessing projection data: {str(e)}")
-        print(f"[DEBUG] Projection structure: {req.projection}")
-        # Use default values
-        current_score = 0.0
-        three_months = 0.0
-        six_months = 0.0
-        twelve_months = 0.0
+        sources = generate_recommended_sources(
+            user_data=req.user_data.dict(),
+            weak_categories=req.weak_categories,
+            moderate_categories=req.moderate_categories,
+            combined_scores=req.combined_scores
+        )
+        return {"sources": sources}
+    except Exception as e:
+        print(f"[ERROR] Failed to generate growth sources: {str(e)}")
+        return {"sources": DEFAULT_RECOMMENDATIONS[:2]}
 
-    GROWTH_SOURCES_PROMPT = f"""
-As a career market analyst and researcher, provide high-confidence references to support projected skill growth timelines for a user.
+class MomentumAction(BaseModel):
+    title: str
+    description: str
+    why: str
+    effort: str
 
-[User Context]
-- Domain: {req.user_data.domain}
-- Career Goal: {req.user_data.career_goal}
-- Experience Level: {req.user_data.exp_level}
-- Weak Skill Categories: {', '.join(req.weak_categories) if req.weak_categories else 'None'}
-- Strong Skill Categories: {', '.join(req.strong_categories) if req.strong_categories else 'None'}
+@app.post("/generate_momentum_toolkit")
+def generate_momentum_toolkit():
+    """Return 3 non-technical, easy-to-apply actions to build momentum"""
 
-[Growth Projection Scores]
-- Current: {current_score:.1f}
-- 3 Months: {three_months:.1f}
-- 6 Months: {six_months:.1f}
-- 12 Months: {twelve_months:.1f}
+    formatted_actions = []
+    IMMEDIATE_ACTIONS = {
+        "Cognitive & Focus Boosters": [
+            {
+                "title": "The 20-Second Reset Rule",
+                "description": "Stand, breathe deeply, and stretch for 20 seconds every 2 hours.",
+                "why": "Resets mental fatigue instantly and keeps your brain sharp.",
+                "effort": "🟢 Easy"
+            },
+            {
+                "title": "The 1% Upgrade Rule",
+                "description": "Do one small thing 1% better than yesterday.",
+                "why": "Tiny daily upgrades compound into massive performance over time.",
+                "effort": "🟡 Moderate"
+            }
+        ],
+        "Work & Professional Behavior": [
+            {
+                "title": "Morning Priority Ritual",
+                "description": "Write down 3 Most Important Tasks (MITs) first thing in the morning.",
+                "why": "Starting with clarity increases reliability & consistency.",
+                "effort": "🟢 Easy"
+            },
+            {
+                "title": "Ask One Question Rule",
+                "description": "Ask 1 thoughtful question in a meeting or to a peer daily.",
+                "why": "Positions you as curious, proactive, and engaged.",
+                "effort": "🟡 Moderate"
+            }
+        ],
+        "Emotional & Social Competence": [
+            {
+                "title": "Mirror Pep Talk",
+                "description": "Say 1 positive line to yourself every morning ('I can solve harder problems today than yesterday').",
+                "why": "Boosts self-belief before the day begins.",
+                "effort": "🟢 Easy"
+            },
+            {
+                "title": "One Compliment a Day",
+                "description": "Give 1 sincere compliment to a colleague or peer.",
+                "why": "Strengthens social bonds effortlessly.",
+                "effort": "🟢 Easy"
+            }
+        ],
+        "Mindset & Reflection": [
+            {
+                "title": "The 'Why Not Me?' Question",
+                "description": "Before starting any task, ask yourself 'If others can grow fast, why not me?'.",
+                "why": "Triggers immediate motivation and action bias.",
+                "effort": "🟢 Easy"
+            },
+            {
+                "title": "What Did I Learn Today? Note",
+                "description": "Write 1 line daily about something you learned today.",
+                "why": "Creates awareness of daily growth & builds a habit of reflection.",
+                "effort": "🟢 Easy"
+            }
+        ]
+    }
 
-Instructions:
-1. For each timeframe (Current, 3 Months, 6 Months, 12 Months), give 1 reliable source supporting that level of growth.
-2. Tailor the context to the user's domain and career goal.
-3. Use only respected industry sources (LinkedIn, WEF, NASSCOM, McKinsey, academic reports, etc).
-4. Format each as:
-   Source Name – Context – URL
+    selected_actions = []
+    categories = list(IMMEDIATE_ACTIONS.keys())
+    random.shuffle(categories)
 
-Return valid JSON:
+    for category in categories:
+        if len(selected_actions) >= 3:
+            break
+        available = [a for a in IMMEDIATE_ACTIONS[category] if a not in selected_actions]
+        if available:
+            selected_actions.append(random.choice(available))
+
+    if len(selected_actions) < 3:
+        all_actions = [a for group in IMMEDIATE_ACTIONS.values() for a in group]
+        selected_actions.extend(random.sample(all_actions, 3 - len(selected_actions)))
+
+        
+    for action in selected_actions:
+        formatted_actions.append({
+            "name": action["title"],  # Map title -> name
+            "description": action["description"],
+            "link": None  # Add link field (can be None)
+        })
+    return {"momentum_toolkit": formatted_actions}
+
+class GrowthOpportunitiesRequest(BaseModel):
+    user_profile: UserProfile
+    scores: Dict[str, float]
+    benchmarks: Dict[str, float]
+
+@app.post("/generate_growth_opportunities")
+def generate_growth_opportunities(req: GrowthOpportunitiesRequest):
+    """
+    Generate 3–4 personalized growth opportunities using Gemini
+    """
+    prompt = f"""
+## ROLE
+You are a career development strategist. Generate 3-4 personalized growth opportunities.
+
+## USER PROFILE
+Name: {req.user_profile.name}
+Domain: {req.user_profile.domain}
+Career Goal: {req.user_profile.career_goal}
+Experience Level: {req.user_profile.exp_level}
+
+## SKILL SCORES vs BENCHMARKS
+{chr(10).join([f"- {cat}: {req.scores.get(cat, 0):.1f} (Benchmark: {req.benchmarks.get(cat, 0)})" for cat in req.scores])}
+
+## TASK
+- Generate 3-4 growth opportunities that leverage strengths and moderate skills
+- Focus on future-focused career advancement
+- Make each opportunity specific and actionable
+- Include why it's recommended based on their profile
+
+## OUTPUT FORMAT (JSON)
 {{
-  "sources": {{
-    "Current": "Source – Context – URL",
-    "3 Months": "Source – Context – URL",
-    "6 Months": "Source – Context – URL",
-    "12 Months": "Source – Context – URL"
-  }}
+  "opportunities": [
+    {{
+      "category": "Category Name",
+      "opportunity": "Description of opportunity",
+      "why": "Reason why recommended"
+    }},
+    ...
+  ]
 }}
 """
 
-    def get_fallback_growth_sources():
-        return {
-            "sources": {
-                "Current": "LinkedIn Talent Insights – Growing demand in your domain – https://linkedin.com",
-                "3 Months": "WEF Future of Jobs Report – Skills needed for career growth – https://weforum.org",
-                "6 Months": "McKinsey Industry Report – Career progression paths – https://mckinsey.com",
-                "12 Months": "Deloitte Talent Trends – Long-term career development – https://deloitte.com"
+    fallback = {
+        "opportunities": [
+            {
+                "category": "Workplace Strategy",
+                "opportunity": "Take initiative to lead a mini-project in your domain.",
+                "why": "Leadership experience early on aligns with your goal and showcases initiative."
+            },
+            {
+                "category": "Technical Proficiency",
+                "opportunity": "Enroll in an advanced-level online course relevant to your domain.",
+                "why": "Strengthens technical depth and bridges minor gaps from benchmarks."
+            },
+            {
+                "category": "Professional Branding",
+                "opportunity": "Publish one insight or learning weekly on LinkedIn.",
+                "why": "Builds visibility and credibility in your domain of interest."
             }
-        }
+        ]
+    }
 
     try:
-        response = gemini_model.generate_content(GROWTH_SOURCES_PROMPT)
+        response = gemini_model.generate_content(prompt)
         raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        sources = json.loads(clean_text)
+        clean = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+        parsed = json.loads(clean)
 
-        if "sources" not in sources:
-            raise ValueError("Missing 'sources' key in Gemini response")
+        if "opportunities" not in parsed:
+            raise ValueError("Missing 'opportunities' key")
 
-        return sources
+        return parsed
 
     except Exception as e:
-        print(f"[ERROR] Gemini growth sources generation failed: {str(e)}")
-        return get_fallback_growth_sources()
+        print(f"[ERROR] Growth opportunity generation failed: {str(e)}")
+        return fallback
