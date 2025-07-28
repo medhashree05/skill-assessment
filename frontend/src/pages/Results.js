@@ -1346,8 +1346,8 @@ useEffect(() => {
           <h4>Benchmark Summary</h4>
         </div>
         <div class="insight-text">
-          <p><strong>Percentile:</strong> ${peerBenchmark.percentile || 'Not available'}</p>
-          <p><strong>Narrative:</strong> ${peerBenchmark.narrative || 'Not available'}</p>
+          <p><strong>Percentile:</strong> ${peerBenchmark.peer_benchmark.percentile || 'Not available'}</p>
+          <p><strong>Narrative:</strong> ${peerBenchmark.peer_benchmark.narrative || 'Not available'}</p>
         </div>
       </div>
 
@@ -1735,7 +1735,7 @@ useEffect(() => {
 
 
 
-        {marketAnalysis && (
+        (
   <div className="analysis-card">
     <div className="card-header">
       <span className="card-icon">📊</span>
@@ -1781,7 +1781,7 @@ useEffect(() => {
       </div>
     </div>
   </div>
-)}
+)
 
       </div>
 
