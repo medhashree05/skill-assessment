@@ -1359,7 +1359,7 @@ useEffect(() => {
           </div>
           <div class="insight-text">
             <ul>
-              ${peerBenchmarkpeer_benchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+              ${peerBenchmark.peer_benchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
             </ul>
           </div>
         </div>
