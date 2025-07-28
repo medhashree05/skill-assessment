@@ -868,7 +868,16 @@ useEffect(() => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [percentage, strongestSkill, skillsData, percentileText, percentileNumber, salaryRangeINR, salaryRangeUSD]);
+  }, [percentage, strongestSkill, skillsData, percentileText, percentileNumber, salaryRangeINR, salaryRangeUSD,userInfo,
+    totalMCQs,
+    getPerformanceLevel,
+    getMarketPercentile,
+    growthProjection,
+  safePeerBenchmark, // Use the safe version
+    actionPlan,
+    growthSources,
+    momentumToolkit,
+    growthOpportunities]);
 
   const generateReportHTML = useCallback(() => {
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -1381,113 +1390,116 @@ useEffect(() => {
 
            
           <div class="section">
-  <div class="section-header">
-    <span>🎯</span>
-    <h2>90-Day Personalized Roadmap</h2>
-  </div>
-  
-  ${
-    actionPlan.map((phase, phaseIndex) => {
-      const dayMilestone = (phaseIndex + 1) * 30;
-      const startingWeek = phaseIndex * 4 + 1;
-      
-      return `
-        <div class="insight-card">
-          <div class="insight-header">
-            <span>📌</span>
-            <h4>PHASE ${phaseIndex + 1} (${dayMilestone - 29}–${dayMilestone} Days) – ${phase.title || 'Phase ' + (phaseIndex + 1)}</h4>
-          </div>
-          <div class="insight-text">
-            <strong>Focus Areas:</strong> ${phase.focus || 'Not specified'}<br/><br/>
-            <strong>Weekly Actions:</strong>
-            <ul>
-              ${Array.isArray(phase.weekly_actions) ?
-                phase.weekly_actions.map((action, index) => `
-                  <li>📅 Week ${startingWeek + index}: ${action}</li>
-                `).join('') :
-                '<li>No actions specified.</li>'
-              }
-            </ul>
-            <strong>Milestone by Day ${dayMilestone}:</strong> ${phase.milestone || 'Not specified'}
-          </div>
-        </div>`;
-    }).join('') 
-  }
-</div>
-
-
+                <div class="section-header">
+                    <span>🎯</span>
+                    <h2>90-Day Personalized Roadmap</h2>
+                </div>
+                
+                ${actionPlan && actionPlan.length > 0 ? 
+                    actionPlan.map((phase, phaseIndex) => {
+                        const dayMilestone = (phaseIndex + 1) * 30;
+                        const startingWeek = phaseIndex * 4 + 1;
+                        
+                        return `
+                            <div class="insight-card">
+                                <div class="insight-header">
+                                    <span>📌</span>
+                                    <h4>PHASE ${phaseIndex + 1} (${dayMilestone - 29}–${dayMilestone} Days) – ${phase.title || 'Phase ' + (phaseIndex + 1)}</h4>
+                                </div>
+                                <div class="insight-text">
+                                    <strong>Focus Areas:</strong> ${phase.focus || 'Not specified'}<br/><br/>
+                                    <strong>Weekly Actions:</strong>
+                                    <ul>
+                                        ${Array.isArray(phase.weekly_actions) ?
+                                            phase.weekly_actions.map((action, index) => `
+                                                <li>📅 Week ${startingWeek + index}: ${action}</li>
+                                            `).join('') :
+                                            '<li>No actions specified.</li>'
+                                        }
+                                    </ul>
+                                    <strong>Milestone by Day ${dayMilestone}:</strong> ${phase.milestone || 'Not specified'}
+                                </div>
+                            </div>`;
+                    }).join('') 
+                    : '<p>Action plan not available.</p>'
+                }
+            </div>
             
             <div class="section">
-  <div class="section-header">
-    <span>📚</span>
-    <h2>Recommended Resources</h2>
-  </div>
-  <div class="insights-section">
-    ${ 
-      growthSources.map(source => `
-        <div class="insight-card">
-          <div class="insight-header">
-            <span>📘</span>
-            <h4>${source.category || 'Resource'}</h4>
-          </div>
-          <div class="insight-text">
-            <strong>${source.title || 'Title not available'}</strong><br/>
-            ${source.why || 'Description not available'}<br/>
-            ⏱️ <em>${source.duration || 'Duration not specified'}</em><br/>
-            ✅ <em>${source.outcome || 'Outcome not specified'}</em><br/>
-            ${source.link ? `🔗 <a href="${source.link}" target="_blank">${source.link}</a>` : ''}
-          </div>
-        </div>
-      `).join('')
-    }
-  </div>
-</div>
-          <div class="section">
-  <div class="section-header">
-    <span>⚙️</span>
-    <h2>Momentum Toolkit</h2>
-  </div>
-
-  <div class="insights-section">
-    ${ 
-      momentumToolkit.map((tool, index) => `
-        <div class="insight-card">
-          <div class="insight-header">
-            <span>🛠️</span>
-            <h4>Tool ${index + 1}</h4>
-          </div>
-          <div class="insight-text">
-            <p><strong>Name:</strong> ${tool.name || 'Tool name not available'}</p>
-            <p><strong>Purpose:</strong> ${tool.description || 'Description not available'}</p>
-            ${tool.link ? `<p><strong>Explore:</strong> <a href="${tool.link}" target="_blank">${tool.link}</a></p>` : ''}
-          </div>
-        </div>
-      `).join('')
-    }
-  </div>
-</div>
-<div class="section">
-  <div class="section-header">
-    <span>🌱</span>
-    <h2>Growth Opportunities</h2>
-  </div>
-
-  <div class="insights-section">
-    ${growthOpportunities.map((opportunity, index) => `
-          <div class="insight-card">
-            <div class="insight-header">
-              <span>🎯</span>
-              <h4>${opportunity.category}</h4>
+                <div class="section-header">
+                    <span>📚</span>
+                    <h2>Recommended Resources</h2>
+                </div>
+                <div class="insights-section">
+                    ${growthSources && growthSources.length > 0 ? 
+                        growthSources.map(source => `
+                            <div class="insight-card">
+                                <div class="insight-header">
+                                    <span>📘</span>
+                                    <h4>${source.category || 'Resource'}</h4>
+                                </div>
+                                <div class="insight-text">
+                                    <strong>${source.title || 'Title not available'}</strong><br/>
+                                    ${source.why || 'Description not available'}<br/>
+                                    ⏱️ <em>${source.duration || 'Duration not specified'}</em><br/>
+                                    ✅ <em>${source.outcome || 'Outcome not specified'}</em><br/>
+                                    ${source.link ? `🔗 <a href="${source.link}" target="_blank">${source.link}</a>` : ''}
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<p>Growth resources not available.</p>'
+                    }
+                </div>
             </div>
-            <div class="insight-text">
-              <p><strong>Opportunity:</strong> ${opportunity.opportunity}</p>
-              <p><strong>Why Recommended:</strong> ${opportunity.why}</p>
+            
+            <div class="section">
+                <div class="section-header">
+                    <span>⚙️</span>
+                    <h2>Momentum Toolkit</h2>
+                </div>
+                <div class="insights-section">
+                    ${momentumToolkit && momentumToolkit.length > 0 ? 
+                        momentumToolkit.map((tool, index) => `
+                            <div class="insight-card">
+                                <div class="insight-header">
+                                    <span>🛠️</span>
+                                    <h4>Tool ${index + 1}</h4>
+                                </div>
+                                <div class="insight-text">
+                                    <p><strong>Name:</strong> ${tool.name || 'Tool name not available'}</p>
+                                    <p><strong>Purpose:</strong> ${tool.description || 'Description not available'}</p>
+                                    ${tool.link ? `<p><strong>Explore:</strong> <a href="${tool.link}" target="_blank">${tool.link}</a></p>` : ''}
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<p>Momentum toolkit not available.</p>'
+                    }
+                </div>
             </div>
-          </div>
-        `).join('')}
-        
-  </div>
-</div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <span>🌱</span>
+                    <h2>Growth Opportunities</h2>
+                </div>
+                <div class="insights-section">
+                    ${growthOpportunities && growthOpportunities.length > 0 ?
+                        growthOpportunities.map((opportunity, index) => `
+                            <div class="insight-card">
+                                <div class="insight-header">
+                                    <span>🎯</span>
+                                    <h4>${opportunity.category || 'Opportunity ' + (index + 1)}</h4>
+                                </div>
+                                <div class="insight-text">
+                                    <p><strong>Opportunity:</strong> ${opportunity.opportunity || 'Not specified'}</p>
+                                    <p><strong>Why Recommended:</strong> ${opportunity.why || 'Not specified'}</p>
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<p>Growth opportunities not available.</p>'
+                    }
+                </div>
+            </div>
 
             
 
