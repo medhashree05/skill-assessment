@@ -445,56 +445,55 @@ useEffect(() => {
   fetchPeerBenchmark();
 }, [userInfo, barChartData, calculatedData.percentage,calculatedData.openEndedCategoryAverages]);
 
-// Add this function after your imports
 const parseRoadmapText = (roadmapText) => {
   if (!roadmapText) return [];
-  
+
   const phases = [];
-  
-  // Split by phase headers (### PHASE X)
-  const phaseMatches = roadmapText.split(/### PHASE \d+/);
-  
-  // Remove the first element (title) and process each phase
-  for (let i = 1; i < phaseMatches.length; i++) {
-    const phaseContent = phaseMatches[i];
-    
-    // Extract phase title
-    const titleMatch = phaseContent.match(/\([^)]+\)\s*–\s*([^\n]+)/);
-    const title = titleMatch ? titleMatch[1].trim() : `Phase ${i}`;
-    
+
+  // Split by each phase header
+  const phaseSections = roadmapText.split(/### PHASE \d+ \([^)]+\) – /);
+
+  // Grab titles like: ### PHASE 1 (0–30 Days) – Title
+  const titleMatches = [...roadmapText.matchAll(/### PHASE \d+ \(([^)]+)\) – ([^\n]+)/g)];
+
+  for (let i = 1; i < phaseSections.length; i++) {
+    const phaseContent = phaseSections[i];
+
+    // Extract title
+    const title = titleMatches[i - 1] ? titleMatches[i - 1][2].trim() : `Phase ${i}`;
+
     // Extract focus areas
-    const focusMatch = phaseContent.match(/\*\*Focus Areas:\*\*\s*([^*]+?)(?=\*\*Weekly Actions:\*\*)/s);
+    const focusMatch = phaseContent.match(/- \*\*Focus Areas:\*\*\s*(.*?)(?=\n- \*\*Weekly Actions:|\n- \*\*Milestone|$)/s);
     const focus = focusMatch ? focusMatch[1].trim().replace(/\n/g, ' ') : 'Not specified';
-    
+
     // Extract weekly actions
-    const weeklyActionsMatch = phaseContent.match(/\*\*Weekly Actions:\*\*\s*(.*?)(?=\*\*Milestone)/s);
+    const weeklyActionsMatch = phaseContent.match(/- \*\*Weekly Actions:\*\*\s*((?:\s*- Week \d+:.*\n*)+)/s);
     let weeklyActions = [];
-    
+
     if (weeklyActionsMatch) {
-      const actionsText = weeklyActionsMatch[1];
-      // Match each week entry
-      const weekMatches = actionsText.match(/Week \d+:[^-]+?(?=Week \d+:|$)/gs);
-      if (weekMatches) {
-        weeklyActions = weekMatches.map(week => 
-          week.replace(/^\s*-\s*/, '').trim().replace(/\n\s*/g, ' ')
-        );
-      }
+      const actionsText = weeklyActionsMatch[1].trim();
+      weeklyActions = actionsText
+        .split(/\n\s*-\s*/)
+        .map(action => action.trim())
+        .filter(action => action.startsWith("Week"))
+        .map(action => action.replace(/^Week \d+:\s*/, '').trim());
     }
-    
+
     // Extract milestone
-    const milestoneMatch = phaseContent.match(/\*\*Milestone by Day \d+:\*\*\s*([^"]*?)(?:\n|$)/s);
+    const milestoneMatch = phaseContent.match(/- \*\*Milestone by Day \d+:\*\*\s*(.*)/);
     const milestone = milestoneMatch ? milestoneMatch[1].trim() : 'Not specified';
-    
+
     phases.push({
       title,
       focus,
       weekly_actions: weeklyActions,
-      milestone
+      milestone,
     });
   }
-  
+
   return phases;
 };
+
 
 
 useEffect(() => {
