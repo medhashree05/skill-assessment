@@ -451,6 +451,8 @@ const safePeerBenchmark = peerBenchmark?.peer_benchmark || {
   in_demand_traits: []
 };
 
+console.log(safePeerBenchmark);
+
 
 
 const parseRoadmapText = (roadmapText) => {
