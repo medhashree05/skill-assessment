@@ -1767,11 +1767,11 @@ useEffect(() => {
         <div className="salary-range">
           <div className="salary-item">
             <span className="salary-label">{marketAnalysis.experience?.label || 'Experience Level'}</span>
-            <span className="salary-desc">{marketAnalysis.experience?.description || 'Calculating...'}</span>
+            <span className="salary-desc">{marketAnalysis.experience?.bullets || 'Calculating...'}</span>
           </div>
           <div className="salary-item">
             <span className="salary-label">{marketAnalysis.salary?.label || 'Salary Range'}</span>
-            <span className="salary-desc">{marketAnalysis.salary?.description || 'Estimating...'}</span>
+            <span className="salary-desc">{marketAnalysis.salary?.bullets || 'Estimating...'}</span>
           </div>
         </div>
       </div>
