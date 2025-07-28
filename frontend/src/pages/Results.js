@@ -364,7 +364,7 @@ skillsData.forEach(skill => {
 
       const data = await response.json();
       console.log("📊 Market Analysis:", data);
-      setMarketAnalysis(data.market_analysis);
+      setMarketAnalysis(data);
     } catch (error) {
       console.error("Error fetching market analysis:", error);
       setMarketAnalysisError("Failed to load market analysis.");
@@ -1735,7 +1735,7 @@ useEffect(() => {
 
 
 
-        (
+        {marketAnalysis && (
   <div className="analysis-card">
     <div className="card-header">
       <span className="card-icon">📊</span>
@@ -1747,8 +1747,8 @@ useEffect(() => {
       <div className="position-badge">
         <span className="position-icon">📝</span>
         <div className="position-info">
-          <span className="position-title">{market_analysis.tier.label}</span>
-          <span className="position-desc">{market_analysis.tier.description}</span>
+          <span className="position-title">{marketAnalysis.tier?.label || 'Position Pending'}</span>
+          <span className="position-desc">{marketAnalysis.tier?.description || 'Analysis in progress'}</span>
         </div>
       </div>
 
@@ -1758,30 +1758,60 @@ useEffect(() => {
           <div className="metric-bar">
             <div
               className="metric-fill"
-              style={{ width: `${market_analysis.readiness_score}%` }}
+              style={{ width: `${marketAnalysis.readiness_score || 0}%` }}
             ></div>
           </div>
-          <span className="metric-value">{market_analysis.readiness_score}%</span>
+          <span className="metric-value">{marketAnalysis.readiness_score || 0}%</span>
         </div>
 
         <div className="salary-range">
           <div className="salary-item">
-            <span className="salary-label">{market_analysis.experience.label}</span>
-            <span className="salary-desc">{market_analysis.experience.description}</span>
+            <span className="salary-label">{marketAnalysis.experience?.label || 'Experience Level'}</span>
+            <span className="salary-desc">{marketAnalysis.experience?.description || 'Calculating...'}</span>
           </div>
           <div className="salary-item">
-            <span className="salary-label">{market_analysis.salary.label}</span>
-            <span className="salary-desc">{market_analysis.salary.description}</span>
+            <span className="salary-label">{marketAnalysis.salary?.label || 'Salary Range'}</span>
+            <span className="salary-desc">{marketAnalysis.salary?.description || 'Estimating...'}</span>
           </div>
         </div>
       </div>
 
       <div className="overall-summary">
-        <p>{market_analysis.overall_message}</p>
+        {marketAnalysis.overall_message && Array.isArray(marketAnalysis.overall_message) ? (
+          marketAnalysis.overall_message.map((message, index) => (
+            <p key={index}>{message}</p>
+          ))
+        ) : (
+          <p>{marketAnalysis.overall_message || 'Generating market insights...'}</p>
+        )}
       </div>
     </div>
   </div>
-)
+)}
+
+{/* Loading state */}
+{loadingMarketAnalysis && (
+  <div className="analysis-card">
+    <div className="card-header">
+      <span className="card-icon">📊</span>
+      <h3>Market Position Analysis</h3>
+      <p>Analyzing your market position...</p>
+    </div>
+    <div className="loading-spinner">Loading market analysis...</div>
+  </div>
+)}
+
+{/* Error state */}
+{marketAnalysisError && (
+  <div className="analysis-card">
+    <div className="card-header">
+      <span className="card-icon">⚠️</span>
+      <h3>Market Position Analysis</h3>
+      <p>Unable to load market analysis</p>
+    </div>
+    <div className="error-message">{marketAnalysisError}</div>
+  </div>
+)}
 
       </div>
 
