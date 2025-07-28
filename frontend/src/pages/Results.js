@@ -156,7 +156,7 @@ const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
     };
 
     try {
-      const response = await fetch("http://localhost:8000/generate_tooltips", {
+      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_tooltips", {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -274,7 +274,7 @@ skillsData.forEach(skill => {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/generate_growth_projection", {
+      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_growth_projection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -347,7 +347,7 @@ skillsData.forEach(skill => {
     };
 
     try {
-      const response = await fetch("http://localhost:8000/generate_market_analysis", {
+      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_market_analysis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -423,7 +423,7 @@ useEffect(() => {
     };
 
     try {
-      const res = await fetch("http://localhost:8000/generate_peer_benchmark", {
+      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_peer_benchmark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -557,7 +557,7 @@ useEffect(() => {
     };
 
     try {
-      const res = await fetch("http://localhost:8000/generate_action_plan", {
+      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_action_plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -649,7 +649,7 @@ useEffect(() => {
     };
 
     try {
-      const res = await fetch("http://localhost:8000/generate_growth_sources", {
+      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_growth_sources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -680,7 +680,7 @@ useEffect(() => {
     setMomentumError(null);
 
     try {
-      const res = await fetch("http://localhost:8000/generate_momentum_toolkit", {
+      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_momentum_toolkit", {
         method: "POST",
         headers: { "Content-Type": "application/json" }
       });
@@ -752,7 +752,7 @@ useEffect(() => {
     };
 
     try {
-      const res = await fetch("http://localhost:8000/generate_growth_opportunities", {
+      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_growth_opportunities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
