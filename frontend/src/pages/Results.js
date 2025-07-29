@@ -107,7 +107,7 @@ function Results() {
     allCategories.forEach((category) => {
       const mcq = categoryScores[category] || 0;
       const open = openEndedCategoryAverages[category] || 0;
-      const weightedScore = Math.round((mcq / 160) * 70 + (open / 50) * 30);
+      const weightedScore = Math.round((mcq / 40) * 70 + (open / 10) * 30);
       chartData.push({
         label: category,
         value: weightedScore,
@@ -445,13 +445,7 @@ useEffect(() => {
   fetchPeerBenchmark();
 }, [userInfo, barChartData, calculatedData.percentage,calculatedData.openEndedCategoryAverages]);
 
-const safePeerBenchmark = peerBenchmark?.peer_benchmark || {
-  percentile: 'Not available',
-  narrative: 'Not available',
-  in_demand_traits: []
-};
 
-console.log(safePeerBenchmark);
 
 
 
@@ -796,7 +790,7 @@ useEffect(() => {
   const getMarketPercentile = useCallback((score) => {
     if (score >= 80) return 'Top 10%';
     if (score >= 60) return 'Top 25%';
-    if (score >= 40) return 'Bottom 40%';
+    if (score >= 40) return 'Top 60%';
     return 'Bottom 20%';
   }, []);
 
@@ -829,25 +823,38 @@ useEffect(() => {
   }, []);
   
   const percentileNumber = getPercentileNumber(percentileText);
-  const barMessage = `You're ahead of ${percentileNumber}% of students who took this test.`;
+  const barMessageText = useCallback((score)=>{
+    if (score>= 40)
+      return `You are ahead of ${100-percentileNumber}% of your peers`;
+    return `You are ahead of ${percentileNumber}% of your peers`
+  },[percentileNumber]);
+
+  const barMessage = barMessageText(percentage);
 
   // Get strongest skill from actual data
   const getStrongestSkill = useCallback(() => {
-    if (Object.keys(categoryScores).length === 0) return 'Strategic Thinking';
+  if (Object.keys(categoryScores).length === 0 || !calculatedData.openEndedCategoryAverages) {
+    return 'Strategic Thinking';
+  }
+  
+  let strongestSkill = '';
+  let highestScore = 0;
+  
+  Object.keys(categoryScores).forEach((category) => {
+    const mcq = categoryScores[category] || 0;
+    const open = calculatedData.openEndedCategoryAverages[category] || 0;
     
-    let strongestSkill = '';
-    let highestScore = 0;
+    // Use same weighted calculation as skillsData
+    const weightedScore = Math.round((mcq / 160) * 70 + (open / 50) * 30);
     
-    Object.entries(categoryScores).forEach(([category, score]) => {
-      const percentage = (score / 160) * 100;
-      if (percentage > highestScore) {
-        highestScore = percentage;
-        strongestSkill = category;
-      }
-    });
-    
-    return strongestSkill || 'Strategic Thinking';
-  }, [categoryScores]);
+    if (weightedScore > highestScore) {
+      highestScore = weightedScore;
+      strongestSkill = category;
+    }
+  });
+  
+  return strongestSkill || 'Strategic Thinking';
+}, [categoryScores, calculatedData.openEndedCategoryAverages]);
 
   const strongestSkill = getStrongestSkill();
   const normalizedSkill = strongestSkill.trim();
@@ -873,7 +880,7 @@ useEffect(() => {
     getPerformanceLevel,
     getMarketPercentile,
     growthProjection,
-  safePeerBenchmark, // Use the safe version
+   // Use the safe version
     actionPlan,
     growthSources,
     momentumToolkit,
@@ -885,7 +892,13 @@ useEffect(() => {
     month: 'long',
     day: 'numeric'
   });
+  const safePeerBenchmark = peerBenchmark?.peer_benchmark || {
+  percentile: 'Not available',
+  narrative: 'Not available',
+  in_demand_traits: []
+  };
 
+  console.log(safePeerBenchmark);
   const marketPercentile = getMarketPercentile(percentage);
   
   return `
@@ -1714,8 +1727,8 @@ useEffect(() => {
           in the next year!
         </p>
         <p>
-          <strong>Peer Percentile:</strong> You are currently ahead of{" "}
-          <strong>{growthProjection.growth_projection.peer_percentile}%</strong> of your peers.
+          <strong>Peer Percentile:</strong> 
+          <strong>{barMessage}</strong> 
         </p>
       </div>
 
