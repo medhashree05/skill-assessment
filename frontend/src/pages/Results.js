@@ -893,9 +893,9 @@ useEffect(() => {
     day: 'numeric'
   });
   const safePeerBenchmark = peerBenchmark?.peer_benchmark || {
-  percentile: 'Not available',
-  narrative: 'Not available',
-  in_demand_traits: []
+  percentile: peerBenchmark.peer_benchmark.percentile,
+  narrative: peerBenchmark.peer_benchmark.narrative,
+  in_demand_traits: peerBenchmark.peer_benchmark.in_demand_traita
   };
 
   console.log(safePeerBenchmark);
@@ -1377,8 +1377,8 @@ useEffect(() => {
           <h4>Benchmark Summary</h4>
         </div>
         <div class="insight-text">
-          <p><strong>Percentile:</strong> ${safePeerBenchmark?.percentile}</p>
-<p><strong>Narrative:</strong> ${safePeerBenchmark?.narrative}</p>
+          <p><strong>Percentile:</strong> ${peerBenchmark?.peer_benchmark?.percentile}</p>
+<p><strong>Narrative:</strong> ${peerBenchmark?.peer_benchmark?.narrative}</p>
         </div>
       </div>
 
@@ -1390,7 +1390,7 @@ useEffect(() => {
           </div>
           <div class="insight-text">
             <ul>
-              ${safePeerBenchmark?.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+              ${peerBenchmark?.peer_benchmark?.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
             </ul>
           </div>
         </div>
