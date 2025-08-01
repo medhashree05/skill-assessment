@@ -770,48 +770,205 @@ class GrowthSourcesRequest(BaseModel):
 
 RECOMMENDED_SOURCES = {
     "Cognitive & Creative Skills": {
-        "below_70": {
-            "title": "Logical and Critical Thinking – University of Auckland",
-            "link": "https://www.futurelearn.com/courses/logical-and-critical-thinking",
-            "duration": "8 hrs (2 weeks)",
-            "outcome": "Strengthens logical reasoning and structured problem-solving"
-        },
-        "above_70": {
-            "title": "Deep Learning Fundamentals – Lightning AI",
-            "link": "https://lightning.ai/courses/deep-learning-fundamentals/",
-            "duration": "6 hrs (self-paced)",
-            "outcome": "Enhances creative problem-solving using modern AI techniques"
-        }
+        "below_70": [
+            {
+                "title": "Think Again – Book by Adam Grant",
+                "link": "https://adamgrant.net/book/think-again/",
+                "duration": "6–8 hrs (audiobook or print)",
+                "outcome": "Helps rethink assumptions, build mental flexibility, and sharpen cognitive agility."
+            },
+            {
+                "title": "NPR Hidden Brain – Cognitive Bias Series",
+                "link": "https://www.npr.org/series/423302056/hidden-brain",
+                "duration": "20 mins/episode (choose 4 episodes)",
+                "outcome": "Explores how thinking errors affect decisions, encouraging awareness and self-correction."
+            },
+            {
+                "title": "Design Your Career – Stanford Life Design Lab",
+                "link": "https://lifedesignlab.stanford.edu/",
+                "duration": "4–5 hrs (self-paced)",
+                "outcome": "Encourages creative problem framing and career prototyping based on design thinking."
+            },
+            {
+                "title": "Critical Thinking – Coursera (U of Edinburgh)",
+                "link": "https://www.coursera.org/learn/critical-thinking-skills",
+                "duration": "8 hrs (2 weeks)",
+                "outcome": "Sharpens logical thinking, argument evaluation, and clarity in decision-making."
+            },
+            {
+                "title": "Problem-Solving Strategies – FutureLearn",
+                "link": "https://www.futurelearn.com/courses/problem-solving",
+                "duration": "2 weeks (3 hrs/week)",
+                "outcome": "Teaches structured approaches to personal and workplace problem-solving."
+            }
+        ],
+        "above_70": [
+            {
+                "title": "Kaggle Active Competitions",
+                "link": "https://www.kaggle.com/competitions",
+                "duration": "3–5 hrs/week (2 weeks)",
+                "outcome": "Applies real-world analytical thinking and encourages structured experimentation."
+            },
+            {
+                "title": "IDEO U: Creative Problem Solving",
+                "link": "https://www.ideou.com/products/problem-solving",
+                "duration": "3 weeks (1–2 hrs/week)",
+                "outcome": "Design thinking–based course for framing complex challenges and innovating."
+            },
+            {
+                "title": "Think Again – Book by Adam Grant",
+                "link": "https://adamgrant.net/book/think-again/",
+                "duration": "6–8 hrs",
+                "outcome": "Reinforces mental agility and creative self-questioning for experienced professionals."
+            },
+            {
+                "title": "Hidden Brain – Workplace Decision Series",
+                "link": "https://www.npr.org/series/423302056/hidden-brain",
+                "duration": "Listen to 4 episodes (80 mins total)",
+                "outcome": "Deepens insight into unconscious reasoning patterns and creative reframing."
+            },
+            {
+                "title": "Design Your Career – Stanford Life Design Lab",
+                "link": "https://lifedesignlab.stanford.edu/",
+                "duration": "4–5 hrs (self-guided)",
+                "outcome": "Great for high performers to explore innovative career pathways and passion alignment."
+            }
+        ]
     },
     "Work & Professional Behavior": {
-        "below_70": {
-            "title": "Effective Time Management – Alison",
-            "link": "https://alison.com/course/time-management",
-            "duration": "3 hrs (self-paced)",
-            "outcome": "Improves task prioritization and daily work consistency"
-        },
-        "above_70": {
-            "title": "Leading Cross-Functional Teams – TrainingCred",
-            "link": "https://trainingcred.com/training-course/leading-cross-functional-collaboration",
-            "duration": "6 hrs (1 week)",
-            "outcome": "Develops collaboration & leadership skills for cross-team projects"
-        }
+        "below_70": [
+            {
+                "title": "Time Management Mastery – LinkedIn Learning",
+                "link": "https://www.linkedin.com/learning/time-management-fundamentals",
+                "duration": "45 mins (self-paced)",
+                "outcome": "Master essential time-blocking and prioritization techniques"
+            },
+            {
+                "title": "Workplace Communication Strategies – MindTools",
+                "link": "https://www.mindtools.com/CommSkll/CommunicationIntro.htm",
+                "duration": "10 mins/module",
+                "outcome": "Improve professional tone and workplace clarity"
+            },
+            {
+                "title": "Asana Guide to Effective Team Collaboration",
+                "link": "https://asana.com/resources/team-collaboration",
+                "duration": "20 mins",
+                "outcome": "Learn async communication strategies and goal alignment"
+            },
+            {
+                "title": "Career Planning Toolkit – Indeed",
+                "link": "https://www.indeed.com/career-advice/career-development/career-planning",
+                "duration": "30 mins",
+                "outcome": "Plan realistic professional growth paths and expectations"
+            },
+            {
+                "title": "The Feedback Guide – Atlassian Work Life",
+                "link": "https://www.atlassian.com/blog/teamwork/how-to-give-feedback",
+                "duration": "10 mins",
+                "outcome": "Learn to give and receive feedback constructively"
+            }
+        ],
+        "above_70": [
+            {
+                "title": "Leadership Live (Podcast) – How to Work With (Almost) Anyone",
+                "link": "https://podcasts.apple.com/in/podcast/leadership-live/id1524072573",
+                "duration": "30–40 mins/episode",
+                "outcome": "Sharpen collaboration and leadership relationship skills"
+            },
+            {
+                "title": "Coaching for Leaders (Podcast)",
+                "link": "https://podcasts.apple.com/in/podcast/coaching-for-leaders/id458827716",
+                "duration": "20–25 mins/episode",
+                "outcome": "Deepen influence and team management skills"
+            },
+            {
+                "title": "The Pitch (Podcast) – Real Startup Pitches",
+                "link": "https://open.spotify.com/show/5CnDmMUG0S5bSSw612fs8C",
+                "duration": "30 mins/episode",
+                "outcome": "Learn persuasive presentation and operational decision-making"
+            },
+            {
+                "title": "Masters of Scale (Podcast)",
+                "link": "https://mastersofscale.com/",
+                "duration": "35–45 mins/episode",
+                "outcome": "Absorb executive insights on team culture and adaptability"
+            },
+            {
+                "title": "Team Icebreakers & Logic Games – SurfOffice Blog",
+                "link": "https://www.surfoffice.com/blog/problem-solving-games",
+                "duration": "15 mins each",
+                "outcome": "Boost team engagement and creative collaboration"
+            }
+        ]
     },
     "Emotional & Social Competence": {
-        "below_70": {
-            "title": "Emotional Resilience at Work – Alison",
-            "link": "https://alison.com/course/introduction-to-resilience-training",
-            "duration": "2 hrs (self-paced)",
-            "outcome": "Builds resilience and emotional stability in workplace stress"
-        },
-        "above_70": {
-            "title": "Managing Emotions in Times of Stress – Yale University",
-            "link": "https://online.yale.edu/courses/managing-emotions-times-uncertainty-and-stress",
-            "duration": "6 hrs (self-paced)",
-            "outcome": "Improves emotional intelligence and adaptability in uncertain environments"
-        }
+        "below_70": [
+            {
+                "title": "Emotional Intelligence Toolkit – University of Nottingham",
+                "link": "https://www.nottingham.ac.uk/studentservices/documents/emotional-intelligence-toolkit.pdf",
+                "duration": "1–2 hrs",
+                "outcome": "Build self-awareness and emotional control through a structured workbook"
+            },
+            {
+                "title": "Emotion Regulation Exercises – PositivePsychology.com",
+                "link": "https://positivepsychology.com/emotion-regulation-worksheets/",
+                "duration": "30 mins daily (1 week)",
+                "outcome": "Enhance ability to manage emotions under stress"
+            },
+            {
+                "title": "Six Seconds EQ Mini Assessment",
+                "link": "https://6sec.org/test/eq/",
+                "duration": "10 mins",
+                "outcome": "Get a quick snapshot of your emotional intelligence level"
+            },
+            {
+                "title": "Calm in Chaos – Verywell Mind Audio Guide",
+                "link": "https://www.verywellmind.com/what-is-emotional-intelligence-2795423",
+                "duration": "10 mins",
+                "outcome": "Learn how to stay calm and respond, not react"
+            },
+            {
+                "title": "EQ Self-Reflection Journal (Free Template)",
+                "link": "https://www.canva.com/design/DAFqbHvbAsY/view?utm_content=DAFqbHvbAsY&utm_campaign=designshare&utm_medium=link&utm_source=publishsharelink",
+                "duration": "5–10 mins/day",
+                "outcome": "Track triggers, reactions, and emotional growth over time"
+            }
+        ],
+        "above_70": [
+            {
+                "title": "Emotional Intelligence Coaching Podcast – Apple",
+                "link": "https://podcasts.apple.com/us/podcast/emotional-intelligence-coaching/id1470081541",
+                "duration": "10–20 mins per episode",
+                "outcome": "Deepen your empathy, conflict navigation, and leadership EQ"
+            },
+            {
+                "title": "The EQ Edge Workbook – Self-Coaching Exercises",
+                "link": "https://eqedge.files.wordpress.com/2011/11/eq-edge-handbook.pdf",
+                "duration": "2 hrs/week (4 weeks)",
+                "outcome": "Apply practical EQ-building techniques from a proven leadership manual"
+            },
+            {
+                "title": "Empathy & Listening Skills – PositivePsychology Toolkit",
+                "link": "https://positivepsychology.com/empathy-worksheets/",
+                "duration": "30–45 mins/session",
+                "outcome": "Sharpen emotional responsiveness and social attunement"
+            },
+            {
+                "title": "Power of Emotions at Work – Verywell Mind Guide",
+                "link": "https://www.verywellmind.com/the-importance-of-emotional-intelligence-in-the-workplace-4164713",
+                "duration": "15 mins",
+                "outcome": "Use emotions strategically to navigate team dynamics and relationships"
+            },
+            {
+                "title": "EQ Reflection Tools – Six Seconds Library",
+                "link": "https://www.6seconds.org/resources/",
+                "duration": "Varies (choose relevant tools)",
+                "outcome": "Expand your EQ toolkit with frameworks used by global leaders"
+            }
+        ]
     }
 }
+
 
 DEFAULT_RECOMMENDATIONS = [
     {
@@ -1065,3 +1222,84 @@ Experience Level: {req.user_profile.exp_level}
     except Exception as e:
         print(f"[ERROR] Growth opportunity generation failed: {str(e)}")
         return fallback
+
+class MentorInsightsRequest(BaseModel):
+    user_data: UserProfile
+    mcq_scores: Dict[str, float]
+    open_scores: Dict[str, float]
+    benchmarks: Dict[str, float]
+    categories: List[str]
+
+@app.post("/generate_mentor_insights")
+def generate_mentor_insights(req: MentorInsightsRequest):
+    """Generate mentor insights for each skill category based on scores vs benchmark"""
+
+    insights = {}
+
+    for category in req.categories:
+        user_score = (req.mcq_scores.get(category, 0) * 0.7) + (req.open_scores.get(category, 0) * 0.3)
+        benchmark = req.benchmarks.get(category, 0)
+        performance = "Above benchmark" if user_score >= benchmark else "Below benchmark"
+
+        prompt = f"""
+## ROLE
+You are a senior career mentor for {req.user_data.domain}.
+Generate personalized, actionable insights for this specific skill category.
+
+## USER PROFILE
+Career Goal: {req.user_data.career_goal}
+Experience Level: {req.user_data.exp_level}
+Domain: {req.user_data.domain}
+
+## SKILL ASSESSMENT
+Category: {category}
+- Your Score: {user_score:.1f}%
+- Benchmark: {benchmark}%
+- Performance: {performance}
+
+## TASK
+Generate personalized insights in this EXACT JSON format without any additional text:
+{{
+  "mentor_insight": "💬 1-sentence personalized insight",
+  "score_context": "🎯 Score context",
+  "immediate_step": "✅ 1 specific action step",
+  "weekly_focus": "📆 1 weekly focus area",
+  "career_impact": "📈 Career impact statement",
+  "encouragement": "✨ Encouraging tagline"
+}}
+
+## RULES
+- Be specific to {category} and {req.user_data.career_goal}
+- Be simple, actionable, and concise
+- Start each field with the specified emoji
+- Keep each field under 20 words
+"""
+
+        try:
+            response = gemini_model.generate_content(prompt)
+            raw = response.text.strip()
+            clean = re.sub(r"^```json\s*|```$", "", raw, flags=re.DOTALL).strip()
+            parsed = json.loads(clean)
+
+            # Basic validation
+            if not all(k in parsed for k in [
+                "mentor_insight", "score_context", "immediate_step",
+                "weekly_focus", "career_impact", "encouragement"
+            ]):
+                raise ValueError("Incomplete insight JSON")
+            
+            insights[category] = parsed
+
+        except Exception as e:
+            print(f"[ERROR] Mentor insight fallback for {category}: {str(e)}")
+
+            insights[category] = {
+                "mentor_insight": f"💬 Focus on improving your {category} skills",
+                "score_context": f"🎯 Your score: {user_score:.1f}% | Benchmark: {benchmark}%",
+                "immediate_step": f"✅ Take one step in {category} today",
+                "weekly_focus": f"📆 Spend 2–3 hrs this week building this skill",
+                "career_impact": f"📈 Strength in this area supports your goal: {req.user_data.career_goal}",
+                "encouragement": f"✨ Progress is built step by step!"
+            }
+
+    return {"mentor_insights": insights}

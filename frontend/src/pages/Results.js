@@ -10,10 +10,7 @@ import { IoInformationCircleOutline } from "react-icons/io5";
 import { useMemo, useCallback, useRef } from 'react';
 
 function Results() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const userInfo = location.state?.userInfo;
-  const tooltipsFetched = useRef(false);
+   
  
   const skillIcons = { 
     "Cognitive & Creative Skills": <LuBrain />,
@@ -30,7 +27,7 @@ function Results() {
     "Personal Management & Wellness": 68,
     "Family & Relationships": 63
   };
-
+                   
   const {
     mcqAnswers = {},
     openEndedResponses = {},
@@ -176,9 +173,8 @@ function Results() {
       console.error(`Error fetching tooltip for ${category}:`, err);
       return { user_tooltip: "", benchmark_tooltip: "" };
     }
-  }, []); // Empty dependency array since this function doesn't depend on any state
+  }, []); 
 
-  // Fetch tooltips only once when component mounts and data is ready
   useEffect(() => {
     const generateAllTooltips = async () => {
       // Only fetch if we haven't fetched before, have data, and have userInfo
@@ -776,6 +772,79 @@ useEffect(() => {
 
   fetchGrowthOpportunities();
 }, [userInfo, barChartData]);
+
+useEffect(() => {
+  const fetchMentorInsights = async () => {
+    if (
+      mentorInsightsFetched.current ||
+      !userInfo ||
+      barChartData.length === 0 ||
+      !mcqScores ||
+      !openScores
+    ) {
+      return;
+    }
+
+    mentorInsightsFetched.current = true;
+    setLoadingMentorInsights(true);
+    setMentorInsightsError(null);
+
+    // Prepare category list and benchmark map
+    const categories = barChartData.map(item => item.label);
+
+    const benchmarks = {};
+    barChartData.forEach(item => {
+      benchmarks[item.label] = item.market;
+    });
+
+    const payload = {
+      user_data: {
+        name: userInfo.fullName || "Anonymous",
+        age: Number(userInfo.age) || 0,
+        education_level: userInfo.educationLevel || "",
+        field: userInfo.field || "",
+        domain: userInfo.domain || userInfo.field || "General",
+        exp_level: userInfo.experienceLevel || "Beginner",
+        interests: userInfo.hobbies
+          ? userInfo.hobbies.split(',').map(s => s.trim())
+          : (userInfo.interests || []),
+        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
+      },
+      mcq_scores: mcqScores,
+      open_scores: openScores,
+      benchmarks,
+      categories
+    };
+
+    try {
+      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_mentor_insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      console.log("Mentor Insights Payload:", payload);
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("❌ Mentor Insights API failed", response.status, errText);
+        throw new Error("Failed to generate mentor insights.");
+      }
+
+      const data = await response.json();
+      console.log("✅ Mentor Insights Data:", data);
+      setMentorInsights(data.mentor_insights);
+    } catch (err) {
+      console.error("Mentor Insights Error:", err);
+      setMentorInsightsError("Failed to load mentor insights.");
+    } finally {
+      setLoadingMentorInsights(false);
+    }
+  };
+
+  fetchMentorInsights();
+}, [userInfo, barChartData, mcqScores, openScores]);
+
 
   
 
