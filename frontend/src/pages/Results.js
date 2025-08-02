@@ -11,7 +11,8 @@ import { useMemo, useCallback, useRef } from 'react';
 
 function Results() {
    
- 
+  const location = useLocation();
+  const navigate = useNavigate();
   const skillIcons = { 
     "Cognitive & Creative Skills": <LuBrain />,
     "Work & Professional Behavior": <MdOutlineWorkOutline />,
@@ -37,9 +38,11 @@ function Results() {
     categoryScores = {},
     questions = [],
   } = location.state || {};
-
+  
+  const userInfo = location.state?.userInfo || {};
   const [barChartData, setBarChartData] = useState([]);
   const [skillsData, setSkillsData] = useState([]);
+  const tooltipsFetched = useRef(false);
   const [tooltips, setTooltips] = useState({});
   const [loadingTooltips, setLoadingTooltips] = useState(false);
   const [growthProjection, setGrowthProjection] = useState(null);
@@ -70,6 +73,10 @@ function Results() {
   const [loadingGrowthOpportunities, setLoadingGrowthOpportunities] = useState(false);
   const growthOpportunitiesFetched = useRef(false);
   const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
+const [mentorInsights, setMentorInsights] = useState({});
+const [loadingMentorInsights, setLoadingMentorInsights] = useState(false);
+const mentorInsightsFetched = useRef(false);
+const [mentorInsightsError, setMentorInsightsError] = useState(null);
 
 
 
@@ -565,13 +572,11 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
-      console.log("action plan", data);
-       setActionPlan(data.action_plan);
       
-      // Parse the roadmap_text into actionPlan format
-    // Parse the roadmap_text into actionPlan format
-const parsedActionPlan = parseRoadmapText(data.roadmap_text);
-setActionPlan(parsedActionPlan);
+      const parsedActionPlan = parseRoadmapText(data.roadmap_text);
+  setActionPlan(parsedActionPlan);
+  console.log("action plan", parsedActionPlan);
+
       
     } catch (err) {
       console.error("Action plan error:", err);
@@ -699,29 +704,16 @@ useEffect(() => {
 
   fetchMomentumToolkit();
 }, []);
+
 useEffect(() => {
   const fetchGrowthOpportunities = async () => {
     if (
-      growthFetched.current ||  
+      growthOpportunitiesFetched.current || 
       !userInfo ||
       barChartData.length === 0
     ) return;
 
-    growthFetched.current = true; // ❌ WRONG REF
-    // ... rest of the code
-  };
-}, [userInfo, barChartData]);
-
-// AFTER (FIXED):
-useEffect(() => {
-  const fetchGrowthOpportunities = async () => {
-    if (
-      growthOpportunitiesFetched.current || // ✅ CORRECT REF
-      !userInfo ||
-      barChartData.length === 0
-    ) return;
-
-    growthOpportunitiesFetched.current = true; // ✅ CORRECT REF
+    growthOpportunitiesFetched.current = true; 
     setLoadingGrowthOpportunities(true);
     setGrowthOpportunitiesError(null);
 
@@ -778,23 +770,24 @@ useEffect(() => {
     if (
       mentorInsightsFetched.current ||
       !userInfo ||
-      barChartData.length === 0 ||
-      !mcqScores ||
-      !openScores
-    ) {
-      return;
-    }
+      barChartData.length === 0
+    ) return;
 
     mentorInsightsFetched.current = true;
     setLoadingMentorInsights(true);
     setMentorInsightsError(null);
 
-    // Prepare category list and benchmark map
-    const categories = barChartData.map(item => item.label);
-
+    const mcqScores = {};
+    const openScores = {};
     const benchmarks = {};
+    const categories = [];
+
     barChartData.forEach(item => {
-      benchmarks[item.label] = item.market;
+      const label = item.label;
+      mcqScores[label] = categoryScores[label] || 0;
+      openScores[label] = calculatedData.openEndedCategoryAverages[label] || 0;
+      benchmarks[label] = item.market || 65;
+      categories.push(label);
     });
 
     const payload = {
@@ -817,36 +810,30 @@ useEffect(() => {
     };
 
     try {
-      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_mentor_insights", {
+      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_mentor_insights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
-      console.log("Mentor Insights Payload:", payload);
+      if (!res.ok) throw new Error(await res.text());
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("❌ Mentor Insights API failed", response.status, errText);
-        throw new Error("Failed to generate mentor insights.");
-      }
-
-      const data = await response.json();
-      console.log("✅ Mentor Insights Data:", data);
+      const data = await res.json();
+      console.log("Mentor insights:", data);
       setMentorInsights(data.mentor_insights);
     } catch (err) {
-      console.error("Mentor Insights Error:", err);
-      setMentorInsightsError("Failed to load mentor insights.");
+      console.error("Mentor Insights error:", err);
+      setMentorInsightsError("Failed to fetch mentor insights");
     } finally {
       setLoadingMentorInsights(false);
     }
   };
 
   fetchMentorInsights();
-}, [userInfo, barChartData, mcqScores, openScores]);
+}, [userInfo, barChartData]);
 
 
-  
+
 
   // Helper functions (memoized to prevent recreation on every render)
   const getPerformanceLevel = useCallback((score) => {
@@ -1390,45 +1377,35 @@ useEffect(() => {
                     `).join('')}
                 </div>
             </div>
-            <div class="section">
-                <div class="section-header">
-                    <span>💡</span>
-                    <h2>Personalized Insights</h2>
-                </div>
-                <div class="insights-section">
-                    <div class="insight-card strength">
-                        <div class="insight-header">
-                            <span>⭐</span>
-                            <h4>Your Strengths</h4>
-                        </div>
-                        <div class="insight-text">
-                            ${strongestSkill} is your superpower! You scored ${skillsData.find(s => s.skill === strongestSkill)?.percentage || 0}%, which puts you ahead of most experienced professionals in this area.
-                        </div>
-                    </div>
-                    
-                    <div class="insight-card growth">
-                        <div class="insight-header">
-                            <span>🌱</span>
-                            <h4>Growth Opportunities</h4>
-                        </div>
-                        <div class="insight-text">
-                            ${strongestSkill} presents your biggest opportunity for growth. Focusing here could significantly boost your overall profile.
-                        </div>
-                    </div>
-                    
-                    <div class="insight-card action">
-                        <div class="insight-header">
-                            <span>🎯</span>
-                            <h4>Next Steps</h4>
-                        </div>
-                        <ul class="action-items">
-                            <li>Focus on developing strategic thinking through targeted learning</li>
-                            <li>Leverage your ${strongestSkill.toLowerCase()} expertise in leadership roles</li>
-                            <li>Consider mentorship opportunities in your field of strength</li>
-                            <li>Join professional communities to network and learn</li>
-                        </ul>
-                    </div>
-                </div>
+           <div class="section">
+  <div class="section-header">
+    <span>💡</span>
+    <h2>Personalized Mentor Insights</h2>
+  </div>
+
+  <div class="insights-section">
+    ${
+      Object.entries(mentorInsights).map(([category, insight]) => `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>📘</span>
+            <h4>${category}</h4>
+          </div>
+          <div class="insight-text">
+            <p>${insight.mentor_insight}</p>
+            <p>${insight.score_context}</p>
+            <p>${insight.immediate_step}</p>
+            <p>${insight.weekly_focus}</p>
+            <p>${insight.career_impact}</p>
+            <p>${insight.encouragement}</p>
+          </div>
+        </div>
+      `).join('')  
+    }
+  </div>
+</div>
+
+
 
            
 
