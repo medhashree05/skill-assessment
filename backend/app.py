@@ -412,7 +412,6 @@ class MarketAnalysisRequest(BaseModel):
     user_profile: UserProfile
     final_score: float
     overall_percentage: float
-    tier: str
     percentile: float
     strengths: List[str]
     weaknesses: List[str]
@@ -420,119 +419,136 @@ class MarketAnalysisRequest(BaseModel):
 
 @app.post("/generate_market_analysis")
 def generate_market_analysis(req: MarketAnalysisRequest):
-    """Generate bullet-point formatted market position analysis using Gemini"""
+    user_data = {
+        "name": req.user_profile.name,
+        "education": req.user_profile.education_level,
+        "exp_level": req.user_profile.exp_level,
+        "domain": req.user_profile.domain,
+        "career_goal": req.user_profile.career_goal,
+    }
 
     score = req.final_score
-    # Optional: recompute tier based on score
-    if score < 40:
+    percentile = req.percentile
+    strengths = req.strengths
+    weaknesses = req.weaknesses
+    benchmark_scores = req.benchmark_scores
+
+    # New tier logic
+    if score < 45 or percentile < 30 or len(weaknesses) >= 3:
         tier = "Emerging Talent"
     elif score < 60:
         tier = "Developing Professional"
-    elif score < 80:
+    elif score < 75:
         tier = "Skilled Practitioner"
     else:
         tier = "Industry Expert"
 
+    # Prompt for Gemini or any LLM
     MARKET_ANALYSIS_PROMPT = f"""
-As a senior career strategist, generate a clear, **bullet-point formatted** market position analysis.
+As a senior AI career strategist, generate an honest, constructive market position analysis.
 
 [User Profile]
-- Name: {req.user_profile.name}
-- Education: {req.user_profile.education_level}
-- Experience Level: {req.user_profile.exp_level}
-- Professional Domain: {req.user_profile.domain}
-- Career Goal: {req.user_profile.career_goal}
+- Name: {user_data.get("name", "User")}
+- Education: {user_data.get("education", "Not specified")}
+- Experience Level: {user_data.get("exp_level", "Not specified")}
+- Domain: {user_data.get("domain", "Not specified")}
+- Career Goal: {user_data.get("career_goal", "Not specified")}
 
 [Assessment Results]
-- Overall Score: {score:.1f}/100
+- Combined Score: {score:.1f}/100
 - Career Tier: {tier}
-- Market Percentile: {req.percentile:.1f}% (ahead of peers)
-- Strengths: {', '.join(req.strengths) if req.strengths else 'None'}
-- Weaknesses: {', '.join(req.weaknesses) if req.weaknesses else 'None'}
+- Market Percentile: {percentile:.1f}%
+- Strengths: {', '.join(strengths) if strengths else 'None'}
+- Weaknesses: {', '.join(weaknesses) if weaknesses else 'None'}
 
 [Market Benchmarks]
-{", ".join([f"{cat}: {val}%" for cat, val in req.benchmark_scores.items()])}
+{', '.join([f"{cat}: {val}%" for cat, val in benchmark_scores.items()])}
 
-### TASK
-1. Convert every section into **3-4 crisp bullet points**, written in second person (e.g., "You demonstrate…").
-2. Be **personalized, motivational, and encouraging**.
-3. Make it sound like **an AI career mentor giving you feedback**.
-4. Use **numbers only when necessary** (e.g., percentile, years, salary).
-5. Keep sentences short, professional, and **visually scannable**.
+### INSTRUCTIONS
+1. Return each section as 3–4 short bullet points.
+2. Tone: supportive but *realistic* and *frank* — don't overhype low scores.
+3. If the percentile is low, acknowledge it directly and suggest improvement.
+4. Be second-person (e.g., "You have shown…"). Avoid long paragraphs.
+5. Label the tier, experience, percentile, salary, and give overall feedback.
 
-### OUTPUT FORMAT (STRICT JSON)
+### OUTPUT JSON FORMAT:
 {{
   "tier": {{
     "label": "{tier}",
     "bullets": ["...", "...", "..."]
   }},
   "experience": {{
-    "label": "Equivalent experience (e.g., 2-3 years)",
+    "label": "Estimated experience range",
     "bullets": ["...", "..."]
   }},
   "percentile": {{
-    "label": "Ahead of {req.percentile:.1f}% of peers",
+    "label": "Percentile vs peers",
     "bullets": ["...", "..."]
   }},
   "salary": {{
-    "label": "Estimated salary range",
+    "label": "Expected salary range",
     "bullets": ["...", "..."]
   }},
   "overall_message": ["...", "..."]
 }}
 """
 
+    # Fallback response
     def get_fallback_market_analysis():
         return {
             "tier": {
                 "label": tier,
                 "bullets": [
-                    f"You are positioned as a {tier}, showcasing strong domain readiness.",
-                    "Your score reflects consistent performance across core competencies."
+                    f"You are currently positioned as {tier}, which reflects early-stage potential.",
+                    "This tier indicates you’re just beginning to explore professional development.",
+                    "Foundational skills need reinforcement before advancing to next tier."
                 ]
             },
             "experience": {
-                "label": "1-3 years",
+                "label": "Less than 1 year",
                 "bullets": [
-                    "Your skill level matches early-career professionals with ~2 years of experience."
+                    "Your profile aligns with entry-level or fresher roles.",
+                    "Building confidence and consistency is key at this stage."
                 ]
             },
             "percentile": {
-                "label": f"Ahead of {req.percentile:.1f}% of peers",
+                "label": f"Ahead of {percentile:.1f}% of peers",
                 "bullets": [
-                    f"You outperform {req.percentile:.1f}% of peers in problem-solving and adaptability."
+                    f"You currently outperform {percentile:.1f}% of assessed peers.",
+                    "There’s strong potential to grow with focused effort."
                 ]
             },
             "salary": {
-                "label": "$65K-$85K",
+                "label": "Estimated salary band",
                 "bullets": [
-                    "Your current skills align with salary bands for high-performing early-career roles."
+                    "Based on your tier, expected roles fall in entry-level brackets (₹3–6 LPA).",
+                    "Upskilling consistently can boost this to ₹8–10 LPA in 1–2 years."
                 ]
             },
             "overall_message": [
-                "You are on a strong growth trajectory.",
-                "Focus on weak areas to accelerate toward leadership roles."
+                "You have the motivation to grow—clarify focus areas and track progress monthly.",
+                "Start with 2 micro-projects and 1 mentor check-in to begin levelling up."
             ],
             "readiness_score": round(req.overall_percentage, 1)
         }
 
+    # Gemini (or LLM) integration
     try:
         response = gemini_model.generate_content(MARKET_ANALYSIS_PROMPT)
         raw_text = response.text.strip()
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
         json_data = json.loads(clean_text)
 
-        if not json_data:
-            raise ValueError("Empty or invalid JSON from Gemini")
-
-        return {
-            **json_data,
-            "readiness_score": round(req.overall_percentage, 1)
-        }
-
+        required_keys = ["tier", "experience", "percentile", "salary", "overall_message"]
+        if all(k in json_data for k in required_keys):
+            return {
+                **json_data,
+                "readiness_score": round(req.overall_percentage, 1)
+            }
     except Exception as e:
-        print(f"[ERROR] Gemini market analysis failed: {str(e)}")
-        return get_fallback_market_analysis()
+        print(f"[ERROR] Market analysis generation failed: {str(e)}")
+
+    return get_fallback_market_analysis()
     
 class PeerBenchmarkRequest(BaseModel):
     user_data: UserProfile

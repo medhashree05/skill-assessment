@@ -338,7 +338,6 @@ skillsData.forEach(skill => {
       },
       final_score: Number(totalScore || 0),
       overall_percentage: calculatedData.percentage || 0,
-      tier: growthProjection?.growth_projection?.tier || "Emerging Talent",
       percentile: growthProjection?.growth_projection?.peer_percentile || 50.0,
       strengths: barChartData
         .filter(skill => skill.value >= 65)
@@ -1416,19 +1415,43 @@ useEffect(() => {
   </div>
 
   <div class="insights-section">
-    
+    ${loadingPeerBenchmark ? `
+      <div class="insight-card">
+        <div class="insight-header">
+          <span>⏳</span>
+          <h4>Analyzing Your Position...</h4>
+        </div>
+        <div class="insight-text">
+          <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Comparing your performance with industry peers...</p>
+          </div>
+        </div>
+      </div>
+    ` : peerBenchmarkError ? `
+      <div class="insight-card error-card">
+        <div class="insight-header">
+          <span>⚠️</span>
+          <h4>Unable to Load Peer Benchmark</h4>
+        </div>
+        <div class="insight-text">
+          <p class="error-message">${peerBenchmarkError}</p>
+          <p>Please try refreshing the page or contact support if the issue persists.</p>
+        </div>
+      </div>
+    ` : peerBenchmark?.peer_benchmark ? `
       <div class="insight-card">
         <div class="insight-header">
           <span>📈</span>
           <h4>Benchmark Summary</h4>
         </div>
         <div class="insight-text">
-          <p><strong>Percentile:</strong> ${peerBenchmark?.peer_benchmark?.percentile}</p>
-<p><strong>Narrative:</strong> ${peerBenchmark?.peer_benchmark?.narrative}</p>
+          <p><strong>Percentile:</strong> ${peerBenchmark.peer_benchmark.percentile || 'Not available'}</p>
+          <p><strong>Narrative:</strong> ${peerBenchmark.peer_benchmark.narrative || 'Analysis not available'}</p>
         </div>
       </div>
 
-     
+      ${peerBenchmark.peer_benchmark.in_demand_traits && peerBenchmark.peer_benchmark.in_demand_traits.length > 0 ? `
         <div class="insight-card">
           <div class="insight-header">
             <span>🧠</span>
@@ -1436,16 +1459,35 @@ useEffect(() => {
           </div>
           <div class="insight-text">
             <ul>
-              ${peerBenchmark?.peer_benchmark?.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
+              ${peerBenchmark.peer_benchmark.in_demand_traits.map(trait => `<li>✅ ${trait}</li>`).join('')}
             </ul>
           </div>
         </div>
-      
-
-      
+      ` : `
+        <div class="insight-card">
+          <div class="insight-header">
+            <span>🧠</span>
+            <h4>In-Demand Traits</h4>
+          </div>
+          <div class="insight-text">
+            <p>Trait analysis is being processed...</p>
+          </div>
+        </div>
+      `}
+    ` : `
+      <div class="insight-card">
+        <div class="insight-header">
+          <span>📊</span>
+          <h4>Peer Benchmark</h4>
+        </div>
+        <div class="insight-text">
+          <p>Peer benchmark data is not available at the moment.</p>
+        </div>
       </div>
+    `}
+  </div>
 </div>
-          
+           
 
            
           <div class="section">
