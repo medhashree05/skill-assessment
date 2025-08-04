@@ -37,30 +37,7 @@ function MCQCompletion() {
 };
 
 
-const generateOpenEndedQuestions = async () => {
-  const payload = {
-    user_profile: userInfo,  
-    mcq_scores: categoryScores  
-  };
 
-  try {
-    const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_open_ended_questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to generate open-ended questions");
-    }
-
-    const data = await response.json();
-    return data.questions || [];
-  } catch (error) {
-    console.error("Error generating open-ended questions:", error);
-    return [];
-  }
-};
 
 
 const handleProceedToOpenEnded = async () => {
@@ -72,7 +49,6 @@ const handleProceedToOpenEnded = async () => {
       totalMCQs: totalQuestions,
       totalScore,
       categoryScores,
-      questions: generatedQuestions,
       userInfo
     } 
   });

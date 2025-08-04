@@ -14,7 +14,6 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
     totalMCQs = 0,
     totalScore = 0,
     categoryScores = {},
-    questions = []
   } = location.state || {};
   
   const [openEndedScores, setOpenEndedScores] = useState([]);
@@ -22,18 +21,18 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
   function mapToBackendPayload(userInfo, categoryScores) {
   return {
     user_profile: {
-      name: userInfo.fullName || "", // NEW
+      name: userInfo.fullName || "", 
       age: Number(userInfo.age) || 0,
       
       education_level: userInfo.educationLevel || "",
       field: userInfo.currentRole || userInfo.field || "",
-      domain: userInfo.professionalDomain || userInfo.professionalDomainOther || "", // NEW
-      exp_level: userInfo.workExperience || "", // NEW
+      domain: userInfo.professionalDomain || userInfo.professionalDomainOther || "", 
+      exp_level: userInfo.workExperience || "", 
       interests: userInfo.hobbies
         ? userInfo.hobbies.split(',').map(s => s.trim())
         : (userInfo.interests || []),
       aspirations: userInfo.careerGoals || userInfo.aspiration || "",
-      career_goal: userInfo.careerGoals || userInfo.careerGoalsOther || "", // NEW
+      career_goal: userInfo.careerGoals || userInfo.careerGoalsOther || "",
     },
     mcq_scores: {
       Cognitive_and_Creative_Skills: categoryScores["Cognitive & Creative Skills"] || 0,
@@ -47,7 +46,6 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
 
 
   const [openEndedQuestions, setOpenEndedQuestions] = useState([]);
-  // User responses keyed by question index
   const [responses, setResponses] = useState({});
 
   useEffect(() => {
@@ -90,7 +88,7 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
     fetchOpenEndedQuestions();
   }, [userInfo, categoryScores, hasFetchedQuestions]);
 
-  // Handle textarea change
+ 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setResponses(prev => ({ ...prev, [name]: value }));
@@ -104,17 +102,17 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
 
   const payload = {
    user_profile: {
-  name: userProfile.fullName || "",  // add this
+  name: userProfile.fullName || "",  
   age: Number(userProfile.age) || 0,
   education_level: userProfile.educationLevel || "",
   field: userProfile.currentRole || userProfile.field || "",
-  domain: userProfile.professionalDomain || userProfile.professionalDomainOther || "", // add this
-  exp_level: userProfile.workExperience || "", // add this
+  domain: userProfile.professionalDomain || userProfile.professionalDomainOther || "", 
+  exp_level: userProfile.workExperience || "", 
   interests: userProfile.hobbies
     ? userProfile.hobbies.split(',').map(s => s.trim())
     : (userProfile.interests || []),
   aspirations: userProfile.careerGoals || userProfile.aspiration || "",
-  career_goal: userProfile.careerGoals || userProfile.careerGoalsOther || "", // add this
+  career_goal: userProfile.careerGoals || userProfile.careerGoalsOther || "", 
 },
 
     answers
@@ -144,7 +142,7 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
   try {
     const scores = await scoreOpenEndedResponses(userInfo, openEndedQuestions, responses);
     console.log("open_ended_scores",scores);
-    setOpenEndedScores(scores); // optional if you want to show before navigating
+    setOpenEndedScores(scores); 
 
     navigate('/results', {
       state: {

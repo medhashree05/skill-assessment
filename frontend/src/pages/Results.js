@@ -247,7 +247,7 @@ const [mentorInsightsError, setMentorInsightsError] = useState(null);
     "Cognitive & Creative Skills": "Cognitive_and_Creative_Skills",
     "Work & Professional Behavior": "Work_and_Professional_Behavior", 
     "Emotional & Social Competence": "Emotional_and_Social_Competence",
-    "Personal Management & Wellness": "Learning_and_Self_Management", // Note: API expects "Learning_and_Self_Management"
+    "Personal Management & Wellness": "Learning_and_Self_Management", 
     "Family & Relationships": "Family_and_Relationships"
   };
   return mapping[skillName] || skillName;
@@ -317,7 +317,7 @@ skillsData.forEach(skill => {
     setLoadingMarketAnalysis(true);
     setMarketAnalysisError(null);
 
-    // Prepare formatted benchmark scores for the payload
+
     const benchmark_scores = {};
     barChartData.forEach(item => {
       benchmark_scores[item.label] = item.market;
@@ -354,8 +354,8 @@ skillsData.forEach(skill => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      console.log("Response status:", response.status); // Add this
-  console.log("Payload sent:", payload); // Add this
+      console.log("Response status:", response.status); 
+  console.log("Payload sent:", payload); 
   
   
       if (!response.ok) {
@@ -456,7 +456,7 @@ const parseRoadmapText = (roadmapText) => {
 
   const phases = [];
 
-  // Split by each phase header
+  
   const phaseSections = roadmapText.split(/### PHASE \d+ \([^)]+\) – /);
 
   // Grab titles like: ### PHASE 1 (0–30 Days) – Title
@@ -752,7 +752,7 @@ useEffect(() => {
 
       const data = await res.json();
       console.log("opportunities", data);
-      setGrowthOpportunities(data.opportunities); // ✅ Access .opportunities from response
+      setGrowthOpportunities(data.opportunities); 
     } catch (err) {
       console.error("Growth Opportunities error:", err);
       setGrowthOpportunitiesError("Failed to fetch personalized growth opportunities");
