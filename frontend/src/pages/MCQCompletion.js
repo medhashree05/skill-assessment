@@ -41,7 +41,7 @@ function MCQCompletion() {
 
 
 const handleProceedToOpenEnded = async () => {
-  const generatedQuestions = await generateOpenEndedQuestions();
+  
 
   navigate('/open-ended-questions', { 
     state: { 
