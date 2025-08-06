@@ -40,7 +40,6 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 gemini_flash = genai.GenerativeModel("gemini-2.5-flash")  # FREE
 gemini_pro = genai.GenerativeModel("gemini-2.5-pro")     # FREE with limits
 groq_model = "llama3-70b-8192"
-
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
@@ -138,29 +137,25 @@ Return ONLY in the following JSON format:
 Only return valid JSON. Do not include anything else.
     """
     try:
-                response = groq_client.chat.completions.create(
-                    model=groq_model,  # e.g., "mixtral-8x7b-32768"
-                    messages=[
-                        {"role": "system", "content": "You are an expert skill assessor."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=1024
-                )
+        response = gemini_flash.generate_content(prompt)
+        raw_text = response.text.strip()
+        print("Raw Gemini response:", raw_text)
 
-                raw_text = response.choices[0].message.content.strip()
-                clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-                json_data = json.loads(clean_text)
+        # Strip markdown code block markers if present (json ... or )
+        clean_text = re.sub(r"^json\s*|                  $", "", raw_text, flags=re.DOTALL).strip()
 
-                if "questions" not in json_data:
-                    raise HTTPException(status_code=500, detail="Response missing 'questions' key")
+        # Parse the cleaned string as JSON
+        json_data = json.loads(clean_text)
 
-                return json_data
+        if "questions" not in json_data:
+            raise HTTPException(status_code=500, detail="Response missing 'questions' key")
+
+        return json_data  # FastAPI will serialize dict to JSON response automatically
 
     except json.JSONDecodeError:
-            raise HTTPException(status_code=500, detail="Failed to parse JSON from Groq response")
+        raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini API response")
     except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+        raise HTTPException(status_code=500, detail=f"Gemini API error: {e}")
 
     
 class OpenEndedAnswer(BaseModel):
