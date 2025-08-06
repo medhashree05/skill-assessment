@@ -39,6 +39,7 @@ app.add_middleware(
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 gemini_flash = genai.GenerativeModel("gemini-2.5-flash")  # FREE
 gemini_pro = genai.GenerativeModel("gemini-2.5-pro")     # FREE with limits
+groq_model = "mixtral-8x7b-32768"
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
@@ -630,15 +631,20 @@ Return ONLY valid JSON in this format:
         }
 
     try:
-        response = gemini_flash.generate_content(prompt)
-        raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        parsed = json.loads(clean_text)
+                response = groq_client.chat.completions.create(
+                model=groq_model,
+                messages=[
+                    {"role": "system", "content": "You are a career market intelligence analyst."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=1024,
+                 )
 
-        if "peer_benchmark" not in parsed:
-            raise ValueError("Missing 'peer_benchmark' key")
-
-        return parsed
+                raw_text = response.choices[0].message.content.strip()
+                clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+                parsed = json.loads(clean_text)
+                return parsed
 
     except Exception as e:
         print(f"[ERROR] Gemini peer benchmark failure: {str(e)}")
