@@ -37,8 +37,8 @@ app.add_middleware(
 )
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-gemini_flash = genai.GenerativeModel("gemini-1.5-flash")  # FREE
-gemini_pro = genai.GenerativeModel("gemini-1.5-pro")     # FREE with limits
+gemini_flash = genai.GenerativeModel("gemini-2.5-flash")  # FREE
+gemini_pro = genai.GenerativeModel("gemini-2.5-pro")     # FREE with limits
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
