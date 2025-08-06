@@ -13,6 +13,7 @@ from typing import Dict
 from typing import Optional
 from google.oauth2 import service_account  
 import random
+from groq import Groq
 
 load_dotenv() 
 
@@ -36,7 +37,13 @@ app.add_middleware(
 )
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+gemini_flash = genai.GenerativeModel("gemini-1.5-flash")  # FREE
+gemini_pro = genai.GenerativeModel("gemini-1.5-pro")     # FREE with limits
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+
+# 4. Ollama (COMPLETELY FREE - Self-hosted)
+OLLAMA_BASE_URL = "http://localhost:11434"
 
 def load_questions():
     df = pd.read_csv("Assessment_chat_v2.csv")
@@ -129,7 +136,7 @@ Return ONLY in the following JSON format:
 Only return valid JSON. Do not include anything else.
     """
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_pro.generate_content(prompt)
         raw_text = response.text.strip()
         print("Raw Gemini response:", raw_text)
 
@@ -218,7 +225,7 @@ Only return valid JSON. Do not include anything else.
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_pro.generate_content(prompt)
         raw_text = response.text.strip()
         print("Raw Gemini scoring response:", raw_text)
 
@@ -276,7 +283,7 @@ Return in JSON format:
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_flash.generate_content(prompt)
         raw_text = response.text.strip()
         print("Raw Gemini tooltip response:", raw_text)
 
@@ -373,7 +380,7 @@ Assessment Data:
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_flash.generate_content(prompt)
         raw_text = response.text.strip()
         print("Raw Gemini growth response:", raw_text)
 
@@ -534,7 +541,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
 
     # Gemini (or LLM) integration
     try:
-        response = gemini_model.generate_content(MARKET_ANALYSIS_PROMPT)
+        response = gemini_pro.generate_content(MARKET_ANALYSIS_PROMPT)
         raw_text = response.text.strip()
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
         json_data = json.loads(clean_text)
@@ -623,7 +630,7 @@ Return ONLY valid JSON in this format:
         }
 
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_flash.generate_content(prompt)
         raw_text = response.text.strip()
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
         parsed = json.loads(clean_text)
@@ -739,11 +746,17 @@ Weak Categories: {', '.join(req.weak_categories) or 'None'}
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
-        roadmap_text = response.text.strip()
+        response = groq_client.chat.completions.create(
+            model="mixtral-8x7b-32768",  # or "llama3-8b-8192"
+            messages=[
+                {"role": "system", "content": "You are a personalized career coach and skill strategist."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        roadmap_text = response.choices[0].message.content.strip()
         return {"roadmap_text": roadmap_text}
     except Exception as e:
-        print(f"[ERROR] Gemini 90-day roadmap generation failed: {str(e)}")
+        print(f"[ERROR] Groq 90-day roadmap generation failed: {str(e)}")
         return {
             "roadmap_text": """90-DAY PERSONALIZED ROADMAP
 
@@ -1225,15 +1238,22 @@ Experience Level: {req.user_profile.exp_level}
     }
 
     try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        clean = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        parsed = json.loads(clean)
+            response = groq_client.chat.completions.create(
+            model="mixtral-8x7b-32768",
+            messages=[
+                {"role": "system", "content": "You are a career development strategist."},
+                {"role": "user", "content": prompt}
+            ]
+          )
 
-        if "opportunities" not in parsed:
-            raise ValueError("Missing 'opportunities' key")
+            raw_text = response.choices[0].message.content.strip()
+            clean = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+            parsed = json.loads(clean)
 
-        return parsed
+            if "opportunities" not in parsed:
+                raise ValueError("Missing 'opportunities' key")
+
+            return parsed
 
     except Exception as e:
         print(f"[ERROR] Growth opportunity generation failed: {str(e)}")
@@ -1292,19 +1312,26 @@ Generate personalized insights in this EXACT JSON format without any additional 
 """
 
         try:
-            response = gemini_model.generate_content(prompt)
-            raw = response.text.strip()
-            clean = re.sub(r"^```json\s*|```$", "", raw, flags=re.DOTALL).strip()
-            parsed = json.loads(clean)
-
-            # Basic validation
-            if not all(k in parsed for k in [
-                "mentor_insight", "score_context", "immediate_step",
-                "weekly_focus", "career_impact", "encouragement"
-            ]):
-                raise ValueError("Incomplete insight JSON")
             
-            insights[category] = parsed
+                response = groq_client.chat.completions.create(
+                model="mixtral-8x7b-32768",
+                messages=[
+                        {"role": "system", "content": f"You are a senior career mentor for {req.user_data.domain}."},
+                        {"role": "user", "content": prompt}
+                    ]
+                 )
+
+                raw = response.choices[0].message.content.strip()
+                clean = re.sub(r"^```json\s*|```$", "", raw, flags=re.DOTALL).strip()
+                parsed = json.loads(clean)
+
+                if not all(k in parsed for k in [
+                    "mentor_insight", "score_context", "immediate_step",
+                    "weekly_focus", "career_impact", "encouragement"
+                ]):
+                    raise ValueError("Incomplete insight JSON")
+
+                insights[category] = parsed
 
         except Exception as e:
             print(f"[ERROR] Mentor insight fallback for {category}: {str(e)}")
