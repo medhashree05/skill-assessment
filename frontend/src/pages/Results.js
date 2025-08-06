@@ -948,9 +948,13 @@ useEffect(() => {
     day: 'numeric'
   });
   const safePeerBenchmark = peerBenchmark?.peer_benchmark || {
-  percentile: peerBenchmark.peer_benchmark.percentile,
-  narrative: peerBenchmark.peer_benchmark.narrative,
-  in_demand_traits: peerBenchmark.peer_benchmark.in_demand_traita
+  percentile:"Top 70% among peers",
+  narrative: "Your skills are competitive in your domain with strengths in key areas.",
+  in_demand_traits: [
+                    "Technical proficiency matches industry requirements",
+                    "Leadership skills align with management expectations",
+                    "Strategic thinking could be improved for senior roles"
+                ]
   };
 
   console.log(safePeerBenchmark);
