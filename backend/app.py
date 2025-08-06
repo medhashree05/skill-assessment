@@ -137,25 +137,30 @@ Return ONLY in the following JSON format:
 Only return valid JSON. Do not include anything else.
     """
     try:
-        response = gemini_pro.generate_content(prompt)
-        raw_text = response.text.strip()
-        print("Raw Gemini response:", raw_text)
+                response = groq_client.chat.completions.create(
+                    model=groq_model,  # e.g., "mixtral-8x7b-32768"
+                    messages=[
+                        {"role": "system", "content": "You are an expert skill assessor."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=1024
+                )
 
-        # Strip markdown code block markers if present (```json ... ``` or ```)
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+                raw_text = response.choices[0].message.content.strip()
+                clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+                json_data = json.loads(clean_text)
 
-        # Parse the cleaned string as JSON
-        json_data = json.loads(clean_text)
+                if "questions" not in json_data:
+                    raise HTTPException(status_code=500, detail="Response missing 'questions' key")
 
-        if "questions" not in json_data:
-            raise HTTPException(status_code=500, detail="Response missing 'questions' key")
-
-        return json_data  # FastAPI will serialize dict to JSON response automatically
+                return json_data
 
     except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini API response")
+            raise HTTPException(status_code=500, detail="Failed to parse JSON from Groq response")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {e}")
+            raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+
     
 class OpenEndedAnswer(BaseModel):
     question: str
