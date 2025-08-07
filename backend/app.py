@@ -13,6 +13,9 @@ from typing import Dict
 from typing import Optional
 from google.oauth2 import service_account  
 import random
+from groq import Groq
+
+
 
 load_dotenv() 
 
@@ -36,7 +39,8 @@ app.add_middleware(
 )
 
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-gemini_model = genai.GenerativeModel("gemini-2.5-flash")
+gemini_model = genai.GenerativeModel("gemini-2.5-pro")
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def load_questions():
     df = pd.read_csv("Assessment_chat_v2.csv")
@@ -129,26 +133,74 @@ Return ONLY in the following JSON format:
 Only return valid JSON. Do not include anything else.
     """
     try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        print("Raw Gemini response:", raw_text)
+        
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile", 
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert skill assessor. Return only valid JSON responses without any additional text or formatting."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=1000,
+            top_p=1,
+            stream=False,
+            stop=None
+        )
+        
+        raw_text = response.choices[0].message.content.strip()
+        print("Raw Groq response:", raw_text)
 
-        # Strip markdown code block markers if present (```json ... ``` or ```)
+       
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
 
-        # Parse the cleaned string as JSON
+       
         json_data = json.loads(clean_text)
 
         if "questions" not in json_data:
             raise HTTPException(status_code=500, detail="Response missing 'questions' key")
 
-        return json_data  # FastAPI will serialize dict to JSON response automatically
+        return json_data 
 
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini API response")
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        print(f"Raw response: {raw_text}")
+        raise HTTPException(status_code=500, detail="Failed to parse JSON from Groq API response")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {e}")
-    
+        print(f"Groq API error: {e}")
+        raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+def make_groq_request(prompt: str, system_message: str = "You are a helpful AI assistant. Return only valid JSON responses without any additional text or formatting.", max_tokens: int = 1500, temperature: float = 0.7):
+    """Helper function to make Groq API requests with consistent error handling"""
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=1,
+            stream=False,
+            stop=None
+        )
+        
+        raw_text = response.choices[0].message.content.strip()
+        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+        return json.loads(clean_text), raw_text
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to parse JSON from Groq API response")
+    except Exception as e:
+        print(f"Groq API error: {e}")
+        raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+
 class OpenEndedAnswer(BaseModel):
     question: str
     answer: str
@@ -160,7 +212,7 @@ class ScoreOpenEndedRequest(BaseModel):
 
 @app.post("/score_open_ended_responses")
 def score_open_ended_responses(req: ScoreOpenEndedRequest):
-    questions = req.answers  # list of OpenEndedAnswer
+    questions = req.answers
     prompt = f"""
 You are a skill evaluator assessing a user's responses to open-ended questions. Each response is associated with one or more categories (Primary and Secondary). Your job is to evaluate how well the answer demonstrates the user's competence in each listed category.
 
@@ -176,14 +228,14 @@ Instructions:
 - Each question is mapped to *one or more categories*. Evaluate the response for each listed category separately.
 - Assign a score from 0 to 100 for how well the user demonstrates that skill in the context of the answer.
 - Provide a short justification (1–2 lines) per score.
-- Do NOT skip any listed category. Even if the response doesn’t reflect that skill, assign a low score (with explanation).
+- Do NOT skip any listed category. Even if the response doesn't reflect that skill, assign a low score (with explanation).
 - Output in strict JSON format.
 
 User Profile:
 - Age: {req.user_profile.age}
 - Education Level: {req.user_profile.education_level}
 - Field of Study/Profession: {req.user_profile.field}
-- Interests: {', '.join(req.user_profile.interests)}
+- Interests: {', '.join(req.user_profile.interests) if req.user_profile.interests else 'Not specified'}
 - Aspirations: {req.user_profile.career_goal}
 
 Evaluate the following:
@@ -217,23 +269,14 @@ Return only this output format (strict JSON):
 Only return valid JSON. Do not include anything else.
 """
 
-    try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        print("Raw Gemini scoring response:", raw_text)
+    json_data, raw_text = make_groq_request(prompt, "You are a skill evaluator. Return only valid JSON responses without any additional text or formatting.", max_tokens=2000)
+    print("Raw Groq scoring response:", raw_text)
 
-        # Clean response if wrapped in ```json or ```
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        json_data = json.loads(clean_text)
+    if "scores" not in json_data:
+        raise HTTPException(status_code=500, detail="Response missing 'scores' key")
 
-        if "scores" not in json_data:
-            raise HTTPException(status_code=500, detail="Response missing 'scores' key")
+    return json_data
 
-        return json_data
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini API response")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {e}")
     
 class TooltipRequest(BaseModel):
     category: str
@@ -276,26 +319,22 @@ Return in JSON format:
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        print("Raw Gemini tooltip response:", raw_text)
-
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        json_data = json.loads(clean_text)
+        json_data, raw_text = make_groq_request(prompt, "You are a career advisor AI. Return only valid JSON responses without any additional text or formatting.")
+        print("Raw Groq tooltip response:", raw_text)
 
         if "user_tooltip" not in json_data or "benchmark_tooltip" not in json_data:
-            raise HTTPException(status_code=500, detail="Tooltip keys missing in Gemini response")
+            raise HTTPException(status_code=500, detail="Tooltip keys missing in Groq response")
 
         return json_data
 
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Failed to parse JSON from Gemini response")
     except Exception as e:
+        print(f"Groq tooltip error: {e}")
         # Fallback tooltips
         return {
             "user_tooltip": f"Your {req.user_score:.1f}% in {req.category} shows solid potential. Focus on real-world application to improve.",
             "benchmark_tooltip": f"Top performers score {req.benchmark_score}% in {req.category}. Practice consistently to reach that level."
         }
+
 
 
 class GrowthProjectionRequest(BaseModel):
@@ -315,7 +354,7 @@ def get_tier_label(score: float) -> str:
 
 @app.post("/generate_growth_projection")
 def generate_growth_projection(req: GrowthProjectionRequest):
-    """AI-Driven Career Growth Projection Generator using Gemini"""
+    """AI-Driven Career Growth Projection Generator using Groq"""
 
     avg_score = sum(req.user_scores.values()) / len(req.user_scores) if req.user_scores else 0
     tier = get_tier_label(avg_score)
@@ -373,12 +412,8 @@ Assessment Data:
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
-        print("Raw Gemini growth response:", raw_text)
-
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        json_data = json.loads(clean_text)
+        json_data, raw_text = make_groq_request(prompt, "You are an expert career analyst. Return only valid JSON responses without any additional text or formatting.", max_tokens=1500)
+        print("Raw Groq growth response:", raw_text)
 
         if "growth_projection" not in json_data:
             raise ValueError("Missing 'growth_projection' in response")
@@ -386,7 +421,7 @@ Assessment Data:
         return json_data
 
     except Exception as e:
-        print(f"[ERROR] Gemini growth projection failed: {str(e)}")
+        print(f"[ERROR] Groq growth projection failed: {str(e)}")
 
         # Fallback response
         current_score = avg_score
@@ -443,7 +478,7 @@ def generate_market_analysis(req: MarketAnalysisRequest):
     else:
         tier = "Industry Expert"
 
-    # Prompt for Gemini or any LLM
+    # Prompt for Groq
     MARKET_ANALYSIS_PROMPT = f"""
 As a senior AI career strategist, generate an honest, constructive market position analysis.
 
@@ -500,7 +535,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
                 "label": tier,
                 "bullets": [
                     f"You are currently positioned as {tier}, which reflects early-stage potential.",
-                    "This tier indicates you’re just beginning to explore professional development.",
+                    "This tier indicates you're just beginning to explore professional development.",
                     "Foundational skills need reinforcement before advancing to next tier."
                 ]
             },
@@ -515,7 +550,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
                 "label": f"Ahead of {percentile:.1f}% of peers",
                 "bullets": [
                     f"You currently outperform {percentile:.1f}% of assessed peers.",
-                    "There’s strong potential to grow with focused effort."
+                    "There's strong potential to grow with focused effort."
                 ]
             },
             "salary": {
@@ -532,12 +567,10 @@ As a senior AI career strategist, generate an honest, constructive market positi
             "readiness_score": round(req.overall_percentage, 1)
         }
 
-    # Gemini (or LLM) integration
+    # Groq integration
     try:
-        response = gemini_model.generate_content(MARKET_ANALYSIS_PROMPT)
-        raw_text = response.text.strip()
-        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        json_data = json.loads(clean_text)
+        json_data, raw_text = make_groq_request(MARKET_ANALYSIS_PROMPT, "You are a senior AI career strategist. Return only valid JSON responses without any additional text or formatting.", max_tokens=2000)
+        print("Raw Groq market analysis response:", raw_text)
 
         required_keys = ["tier", "experience", "percentile", "salary", "overall_message"]
         if all(k in json_data for k in required_keys):
@@ -660,7 +693,7 @@ def generate_action_plan(req: ActionPlanRequest):
     # Average score
     current_avg = np.mean(list(combined_scores.values()))
 
-    # Gemini prompt
+    # Groq prompt
     prompt = f"""
 ## ROLE  
 You are a **personalized career coach and skill strategist**.  
@@ -739,11 +772,33 @@ Weak Categories: {', '.join(req.weak_categories) or 'None'}
 """
 
     try:
-        response = gemini_model.generate_content(prompt)
-        roadmap_text = response.text.strip()
+        
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a personalized career coach and skill strategist. Generate detailed, practical career roadmaps based on user data."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+            temperature=0.8,
+            max_tokens=2500,
+            top_p=1,
+            stream=False,
+            stop=None
+        )
+        
+        roadmap_text = response.choices[0].message.content.strip()
+        print("Raw Groq action plan response:", roadmap_text)
+        
         return {"roadmap_text": roadmap_text}
+        
     except Exception as e:
-        print(f"[ERROR] Gemini 90-day roadmap generation failed: {str(e)}")
+        print(f"[ERROR] Groq 90-day roadmap generation failed: {str(e)}")
         return {
             "roadmap_text": """90-DAY PERSONALIZED ROADMAP
 
