@@ -1278,6 +1278,18 @@ useEffect(() => {
                 border-radius: 0;
             }
         }
+            @media (max-width: 768px){
+            .overview-item{
+            flex-direction:column;
+            }
+            .performance-cards{
+               display: grid;
+              grid-template-rows: repeat(3, 1fr);
+              gap: 20px;
+              margin-bottom: 20px;
+
+            }
+            }
     </style>
 </head>
 <body>
