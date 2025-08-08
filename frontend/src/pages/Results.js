@@ -1278,7 +1278,7 @@ useEffect(() => {
                 border-radius: 0;
             }
         }
-            @media (max-width: 768px){
+            @media (max-width: 480px){
             .overview-item{
             flex-direction:column;
             }
@@ -1290,6 +1290,7 @@ useEffect(() => {
 
             }
             }
+           
     </style>
 </head>
 <body>
