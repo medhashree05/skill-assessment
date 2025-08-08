@@ -14,7 +14,7 @@ from typing import Optional
 from google.oauth2 import service_account  
 import random
 from groq import Groq
-
+import requests
 
 
 load_dotenv() 
@@ -174,6 +174,8 @@ Only return valid JSON. Do not include anything else.
     except Exception as e:
         print(f"Groq API error: {e}")
         raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+    
+
 def make_groq_request(prompt: str, system_message: str = "You are a helpful AI assistant. Return only valid JSON responses without any additional text or formatting.", max_tokens: int = 1500, temperature: float = 0.7):
     """Helper function to make Groq API requests with consistent error handling"""
     try:
