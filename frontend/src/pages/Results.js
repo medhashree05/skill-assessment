@@ -815,7 +815,7 @@ useEffect(() => {
       scores,
       benchmarks
     };
-
+    const startTime = performance.now();
     try {
       const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_growth_opportunities", {
         method: "POST",
@@ -826,6 +826,8 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("opportunities", data);
       setGrowthOpportunities(data.opportunities); 
     } catch (err) {
@@ -882,7 +884,7 @@ useEffect(() => {
       benchmarks,
       categories
     };
-
+    const startTime = performance.now();
     try {
       const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_mentor_insights", {
         method: "POST",
@@ -893,6 +895,8 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("Mentor insights:", data);
       setMentorInsights(data.mentor_insights);
     } catch (err) {
@@ -1353,18 +1357,46 @@ useEffect(() => {
                 border-radius: 0;
             }
         }
-            @media (max-width: 480px){
-            .overview-item{
-            flex-direction:column;
-            }
-            .performance-cards{
-               display: grid;
-              grid-template-rows: repeat(3, 1fr);
-              gap: 20px;
-              margin-bottom: 20px;
+            @media screen and (max-width: 768px) {
+    .overview-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .overview-item {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .performance-cards {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px;
+    }
+    
+    .performance-card {
+        width: 100%;
+        min-height: 120px;
+    }
+}
 
-            }
-            }
+@media screen and (max-width: 480px) {
+    .performance-cards {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px;
+    }
+    
+    .performance-card {
+        padding: 15px;
+        min-height: 100px;
+        width: 100%;
+        flex: none;
+    }
+    
+    .performance-card .value {
+        font-size: 18px;
+    }
+}
            
     </style>
 </head>
@@ -1438,7 +1470,7 @@ useEffect(() => {
                 <div class="performance-cards">
                     <div class="performance-card">
                         <h3>Overall Score</h3>
-                        <div class="value">${percentage}.0%</div>
+                        <div class="value">${percentage.toFixed(2)}%</div>
                         <div class="label">${getPerformanceLevel(percentage)}</div>
                     </div>
                     <div class="performance-card percentile">
@@ -1721,7 +1753,7 @@ useEffect(() => {
       </div>
     </div>
   <div className="score-display" style={{ position: 'relative' }}>
-    <span className="score-number">{percentage}.0%</span>
+    <span className="score-number">{percentage.toFixed(2)}%</span>
     <span className="score-label">Overall Score</span>
     <span className="score-status">{getPerformanceLevel(percentage)}</span>
     
