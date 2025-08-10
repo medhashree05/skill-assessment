@@ -1359,7 +1359,7 @@ useEffect(() => {
         }
             @media screen and (max-width: 768px) {
     .overview-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr ;
     }
     
     .overview-item {
@@ -1368,8 +1368,8 @@ useEffect(() => {
     }
     
     .performance-cards {
-        display: flex !important;
-        flex-direction: column !important;
+        display: flex ;
+        flex-direction: column 
         gap: 15px;
     }
     
