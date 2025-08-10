@@ -297,7 +297,7 @@ BENCHMARK_TOOLTIPS = {
 }
 
 
-@app.post("/generate_tooltip")
+@app.post("/generate_tooltips")
 def generate_tooltip(req: TooltipRequest):
     prompt = f"""
 As a career advisor AI, generate a single personalized tooltip for a skill category comparison.
@@ -563,7 +563,8 @@ As a senior AI career strategist, generate an honest, constructive market positi
                     "Based on your tier, expected roles fall in entry-level brackets (₹3–6 LPA).",
                     "Upskilling consistently can boost this to ₹8–10 LPA in 1–2 years."
                 ]
-            }
+            },
+             "readiness_score": round(req.overall_percentage, 1)
         }
 
     # Groq integration
