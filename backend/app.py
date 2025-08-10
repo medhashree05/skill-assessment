@@ -286,10 +286,21 @@ class TooltipRequest(BaseModel):
     benchmark_score: float
     user_profile: UserProfile
 
-@app.post("/generate_tooltips")
-def generate_tooltips(req: TooltipRequest):
+
+# Hardcoded benchmark tooltips
+BENCHMARK_TOOLTIPS = {
+    "Cognitive & Creative Skills": "Reach 70% benchmark by practicing teamwork and time management!",
+    "Work & Professional Behavior": "The 65% benchmark indicates industry average. Focus on improving your skills to reach and surpass this target.",
+    "Emotional & Social Competence": "Benchmark is 63%. Develop emotional intelligence and practice teamwork to reach this target .",
+    "Personal Management & Wellness": "Reach 68% benchmark by prioritizing tasks and practicing mindfulness to excel .",
+    "Family & Relationships": "Reach 60% benchmark by practicing empathy and teamwork to excel"
+}
+
+
+@app.post("/generate_tooltip")
+def generate_tooltip(req: TooltipRequest):
     prompt = f"""
-As a career advisor AI, generate personalized tooltips for a skill category comparison.
+As a career advisor AI, generate a single personalized tooltip for a skill category comparison.
 
 [User Profile]
 Education: {req.user_profile.education_level}
@@ -303,39 +314,43 @@ Career Goal: {req.user_profile.career_goal}
 - Benchmark: {req.benchmark_score}%
 
 Instructions:
-1. Create a USER tooltip (max 30 words): 
-   - Acknowledge current performance
-   - Provide constructive feedback  
-   - Use encouraging tone
-
-2. Create a BENCHMARK tooltip (max 30 words):
-   - Explain benchmark significance
-   - Suggest how to reach benchmark
-   - Keep it motivational
+1. Create only ONE tooltip (max 30 words).
+2. Acknowledge current performance.
+3. Provide constructive feedback.
+4. Use an encouraging and motivational tone.
 
 Return in JSON format:
 {{
-    "user_tooltip": "Your personalized feedback...",
-    "benchmark_tooltip": "Your benchmark guidance..."
+    "user_tooltip": "Your personalized feedback..."
 }}
 """
 
     try:
-        json_data, raw_text = make_groq_request(prompt, "You are a career advisor AI. Return only valid JSON responses without any additional text or formatting.")
+        json_data, raw_text = make_groq_request(
+            prompt,
+            "You are a career advisor AI. Return only valid JSON responses without any additional text or formatting."
+        )
         print("Raw Groq tooltip response:", raw_text)
 
-        if "user_tooltip" not in json_data or "benchmark_tooltip" not in json_data:
-            raise HTTPException(status_code=500, detail="Tooltip keys missing in Groq response")
+        if "user_tooltip" not in json_data:
+            raise HTTPException(status_code=500, detail="Tooltip key missing in Groq response")
 
-        return json_data
+        # Add benchmark tooltip from hardcoded constants
+        benchmark_tooltip = BENCHMARK_TOOLTIPS.get(req.category)
+
+        return {
+            "user_tooltip": json_data["user_tooltip"],
+            "benchmark_tooltip": benchmark_tooltip
+        }
 
     except Exception as e:
         print(f"Groq tooltip error: {e}")
-        # Fallback tooltips
+        # Fallback tooltip if Groq fails
         return {
-            "user_tooltip": f"Your {req.user_score:.1f}% in {req.category} shows solid potential. Focus on real-world application to improve.",
-            "benchmark_tooltip": f"Top performers score {req.benchmark_score}% in {req.category}. Practice consistently to reach that level."
+            "user_tooltip": f"Your {req.user_score:.1f}% in {req.category} shows strong potential. Keep practicing and applying skills to improve further.",
+            "benchmark_tooltip": BENCHMARK_TOOLTIPS.get(req.category)
         }
+
 
 
 
@@ -343,23 +358,14 @@ class GrowthProjectionRequest(BaseModel):
     user_data: UserProfile
     user_scores: Dict[str, float]
     benchmark_scores: Dict[str, float]
+    tier: str  # NEW: tier provided directly by request
 
-def get_tier_label(score: float) -> str:
-    if score >= 85:
-        return "Top Talent"
-    elif score >= 70:
-        return "Emerging Leader"
-    elif score >= 55:
-        return "Skilled Contributor"
-    else:
-        return "Emerging Talent"
 
 @app.post("/generate_growth_projection")
 def generate_growth_projection(req: GrowthProjectionRequest):
     """AI-Driven Career Growth Projection Generator using Groq"""
 
     avg_score = sum(req.user_scores.values()) / len(req.user_scores) if req.user_scores else 0
-    tier = get_tier_label(avg_score)
 
     prompt = f"""
 ## ROLE
@@ -374,13 +380,13 @@ Profile:
 Assessment Data:
 - User Scores (0-100 scale): {json.dumps(req.user_scores)}
 - Market Benchmarks (0-100 scale): {json.dumps(req.benchmark_scores)}
+- Tier: {req.tier}
 
 ### TASKS:
 1. Calculate the following strictly using reasoning:
    - Current Score (average of user scores)
    - Projected Scores (3, 6, 12 months) assuming realistic growth if user follows best practices
    - Peer Percentile (estimated relative to benchmarks, 1–99%)
-   - Assign a Tier: "Top Talent", "Emerging Leader", "Skilled Contributor", or "Emerging Talent"
 
 2. Write a **3-sentence motivational summary**:
    - Highlight weakest skill categories
@@ -402,7 +408,7 @@ Assessment Data:
     "6_months": <float>,
     "12_months": <float>,
     "peer_percentile": <float>,
-    "tier": "{tier}"
+    "tier": "{req.tier}"
   }},
   "growth_summary": "Your 3-sentence motivational text here.",
   "action_steps": [
@@ -414,7 +420,11 @@ Assessment Data:
 """
 
     try:
-        json_data, raw_text = make_groq_request(prompt, "You are an expert career analyst. Return only valid JSON responses without any additional text or formatting.", max_tokens=1500)
+        json_data, raw_text = make_groq_request(
+            prompt,
+            "You are an expert career analyst. Return only valid JSON responses without any additional text or formatting.",
+            max_tokens=1500
+        )
         print("Raw Groq growth response:", raw_text)
 
         if "growth_projection" not in json_data:
@@ -434,7 +444,7 @@ Assessment Data:
                 "6_months": round(current_score * 1.10, 1),
                 "12_months": round(current_score * 1.15, 1),
                 "peer_percentile": 60.0,
-                "tier": tier
+                "tier": req.tier
             },
             "growth_summary": "Focus on closing key gaps to accelerate toward your career target. You're on track!",
             "action_steps": [
@@ -443,6 +453,7 @@ Assessment Data:
                 "Join 1 professional community for peer learning"
             ]
         }
+
     
 
 class MarketAnalysisRequest(BaseModel):
@@ -453,6 +464,7 @@ class MarketAnalysisRequest(BaseModel):
     strengths: List[str]
     weaknesses: List[str]
     benchmark_scores: Dict[str, float]
+    tier:str
 
 @app.post("/generate_market_analysis")
 def generate_market_analysis(req: MarketAnalysisRequest):
@@ -469,16 +481,7 @@ def generate_market_analysis(req: MarketAnalysisRequest):
     strengths = req.strengths
     weaknesses = req.weaknesses
     benchmark_scores = req.benchmark_scores
-
-    # New tier logic
-    if score < 45 or percentile < 30 or len(weaknesses) >= 3:
-        tier = "Emerging Talent"
-    elif score < 60:
-        tier = "Developing Professional"
-    elif score < 75:
-        tier = "Skilled Practitioner"
-    else:
-        tier = "Industry Expert"
+    tier=req.tier
 
     # Prompt for Groq
     MARKET_ANALYSIS_PROMPT = f"""
@@ -525,8 +528,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
   "salary": {{
     "label": "Expected salary range",
     "bullets": ["...", "..."]
-  }},
-  "overall_message": ["...", "..."]
+  }}
 }}
 """
 
@@ -561,12 +563,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
                     "Based on your tier, expected roles fall in entry-level brackets (₹3–6 LPA).",
                     "Upskilling consistently can boost this to ₹8–10 LPA in 1–2 years."
                 ]
-            },
-            "overall_message": [
-                "You have the motivation to grow—clarify focus areas and track progress monthly.",
-                "Start with 2 micro-projects and 1 mentor check-in to begin levelling up."
-            ],
-            "readiness_score": round(req.overall_percentage, 1)
+            }
         }
 
     # Groq integration

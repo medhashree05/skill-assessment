@@ -28,6 +28,14 @@ function Results() {
     "Personal Management & Wellness": 68,
     "Family & Relationships": 63
   };
+
+  const categorytotal={
+    "Cognitive & Creative Skills": 9,
+    "Work & Professional Behavior": 6,
+    "Emotional & Social Competence": 10,
+    "Personal Management & Wellness": 9,
+    "Family & Relationships": 6
+  };
                    
   const {
     mcqAnswers = {},
@@ -38,6 +46,13 @@ function Results() {
     categoryScores = {},
     questions = [],
   } = location.state || {};
+
+  const open = {};
+
+  openEndedScores.forEach(({ category }) => {
+    open[category] = (open[category] || 0) + 1;
+  });
+
   
   const userInfo = location.state?.userInfo || {};
   const [barChartData, setBarChartData] = useState([]);
@@ -73,10 +88,10 @@ function Results() {
   const [loadingGrowthOpportunities, setLoadingGrowthOpportunities] = useState(false);
   const growthOpportunitiesFetched = useRef(false);
   const [growthOpportunitiesError, setGrowthOpportunitiesError] = useState(null);
-const [mentorInsights, setMentorInsights] = useState({});
-const [loadingMentorInsights, setLoadingMentorInsights] = useState(false);
-const mentorInsightsFetched = useRef(false);
-const [mentorInsightsError, setMentorInsightsError] = useState(null);
+  const [mentorInsights, setMentorInsights] = useState({});
+  const [loadingMentorInsights, setLoadingMentorInsights] = useState(false);
+  const mentorInsightsFetched = useRef(false);
+  const [mentorInsightsError, setMentorInsightsError] = useState(null);
 
 
 
@@ -92,13 +107,15 @@ const [mentorInsightsError, setMentorInsightsError] = useState(null);
 
     const openEndedCategoryAverages = {};
     Object.entries(openEndedCategoryScores).forEach(([category, scores]) => {
-      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const avg = scores.reduce((a, b) => a + b, 0) / ((scores.length)*100);
       openEndedCategoryAverages[category] = avg;
     });
+    console.log("openEndedCategoryAverages",openEndedCategoryAverages)
+    const totalOpenEndedScore = openEndedScores.reduce((sum, { score }) => sum + score, 0);
+    const totalOpenEndedPossible = openEndedScores.length * 100;
 
-    const openEndedTotalScore = Object.values(openEndedCategoryAverages).reduce((a, b) => a + b, 0) / (Object.keys(openEndedCategoryAverages).length || 1);
     const mcqpercentage = totalMCQs > 0 ? Math.round((totalScore/160) * 70) : 0;
-    const open_ended_percentage = totalMCQs > 0 ? Math.round((openEndedTotalScore/50) * 30) : 0;
+    const open_ended_percentage = (totalOpenEndedScore / totalOpenEndedPossible)*30;
     const percentage = mcqpercentage + open_ended_percentage;
 
     // Generate bar chart data
@@ -111,13 +128,18 @@ const [mentorInsightsError, setMentorInsightsError] = useState(null);
     allCategories.forEach((category) => {
       const mcq = categoryScores[category] || 0;
       const open = openEndedCategoryAverages[category] || 0;
-      const weightedScore = Math.round((mcq / 40) * 70 + (open / 10) * 30);
-      chartData.push({
+      console.log(mcq,open);
+      const mcqPercent = (mcq / (categorytotal[category] * 4)) * 70; 
+      const openPercent = open * 30; 
+
+      const weightedScore = Math.round(mcqPercent + openPercent);
+          chartData.push({
         label: category,
         value: weightedScore,
         market: dummyMarketScores[category] || 65
       });
     });
+    console.log(chartData);
 
     // Generate skills data for display
     const skills = chartData.map(item => ({
@@ -235,7 +257,16 @@ const [mentorInsightsError, setMentorInsightsError] = useState(null);
       return;
     }
 
-    growthFetched.current = true; // Prevent future calls
+    // Function to determine tier based on average score
+    const getTierLabel = (score) => {
+      if (score >= 85) return "Top Talent";
+      if (score >= 70) return "Emerging Leader";
+      if (score >= 55) return "Skilled Contributor";
+      return "Emerging Talent";
+    };
+
+    // Prevent multiple calls
+    growthFetched.current = true;
     setLoadingGrowth(true);
     setGrowthError(null);
 
@@ -243,21 +274,26 @@ const [mentorInsightsError, setMentorInsightsError] = useState(null);
     const formattedBenchmarks = {};
 
     const mapSkillNameToAPIFormat = (skillName) => {
-    const mapping = {
-    "Cognitive & Creative Skills": "Cognitive_and_Creative_Skills",
-    "Work & Professional Behavior": "Work_and_Professional_Behavior", 
-    "Emotional & Social Competence": "Emotional_and_Social_Competence",
-    "Personal Management & Wellness": "Learning_and_Self_Management", 
-    "Family & Relationships": "Family_and_Relationships"
-  };
-  return mapping[skillName] || skillName;
-};
+      const mapping = {
+        "Cognitive & Creative Skills": "Cognitive_and_Creative_Skills",
+        "Work & Professional Behavior": "Work_and_Professional_Behavior", 
+        "Emotional & Social Competence": "Emotional_and_Social_Competence",
+        "Personal Management & Wellness": "Learning_and_Self_Management", 
+        "Family & Relationships": "Family_and_Relationships"
+      };
+      return mapping[skillName] || skillName;
+    };
 
-skillsData.forEach(skill => {
-  const apiSkillName = mapSkillNameToAPIFormat(skill.skill);
-  formattedScores[apiSkillName] = skill.percentage || 0;
-  formattedBenchmarks[apiSkillName] = dummyMarketScores[skill.skill] || 65;
-});
+    skillsData.forEach(skill => {
+      const apiSkillName = mapSkillNameToAPIFormat(skill.skill);
+      formattedScores[apiSkillName] = skill.percentage || 0;
+      formattedBenchmarks[apiSkillName] = dummyMarketScores[skill.skill] || 65;
+    });
+
+    // Calculate average score for tier determination
+    const avgScore =
+      Object.values(formattedScores).reduce((a, b) => a + b, 0) /
+      Object.keys(formattedScores).length;
 
     const payload = {
       user_data: {
@@ -273,15 +309,19 @@ skillsData.forEach(skill => {
         career_goal: userInfo.careerGoals || userInfo.aspiration || ""
       },
       user_scores: formattedScores,
-      benchmark_scores: formattedBenchmarks
+      benchmark_scores: formattedBenchmarks,
+      tier: getTierLabel(avgScore) // Send tier from frontend
     };
 
     try {
-      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_growth_projection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+      const response = await fetch(
+        "https://skill-assessment-n1dm.onrender.com/generate_growth_projection",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -302,6 +342,7 @@ skillsData.forEach(skill => {
 
   fetchGrowthProjection();
 }, [userInfo, skillsData]);
+
   useEffect(() => {
   const fetchMarketAnalysis = async () => {
     if (
@@ -313,16 +354,31 @@ skillsData.forEach(skill => {
       return;
     }
 
+    // Tier calculation logic
+    const getTierLabel = (score) => {
+      if (score >= 85) return "Top Talent";
+      if (score >= 70) return "Emerging Leader";
+      if (score >= 55) return "Skilled Contributor";
+      return "Emerging Talent";
+    };
+
+    // Prevent multiple calls
     marketAnalysisFetched.current = true;
     setLoadingMarketAnalysis(true);
     setMarketAnalysisError(null);
 
-
+    // Prepare benchmark scores
     const benchmark_scores = {};
     barChartData.forEach(item => {
       benchmark_scores[item.label] = item.market;
     });
 
+    // Calculate average score for tier
+    const avgScore =
+      barChartData.reduce((sum, skill) => sum + (skill.value || 0), 0) /
+      barChartData.length;
+
+    // Build payload with tier
     const payload = {
       user_profile: {
         name: userInfo.fullName || "Anonymous",
@@ -345,19 +401,23 @@ skillsData.forEach(skill => {
       weaknesses: barChartData
         .filter(skill => skill.value < 50)
         .map(skill => skill.label),
-      benchmark_scores
+      benchmark_scores,
+      tier: getTierLabel(avgScore) // Send tier here
     };
 
     try {
-      const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_market_analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      console.log("Response status:", response.status); 
-  console.log("Payload sent:", payload); 
-  
-  
+      const response = await fetch(
+        "https://skill-assessment-n1dm.onrender.com/generate_market_analysis",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      console.log("Response status:", response.status);
+      console.log("Payload sent:", payload);
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ Market Analysis API failed", response.status, errorText);
@@ -377,6 +437,7 @@ skillsData.forEach(skill => {
 
   fetchMarketAnalysis();
 }, [userInfo, barChartData, calculatedData.percentage, totalScore, growthProjection]);
+
 
 
   
@@ -1894,15 +1955,7 @@ useEffect(() => {
         </div>
       </div>
 
-      <div className="overall-summary">
-        {marketAnalysis.overall_message && Array.isArray(marketAnalysis.overall_message) ? (
-          marketAnalysis.overall_message.map((message, index) => (
-            <p key={index}>{message}</p>
-          ))
-        ) : (
-          <p>{marketAnalysis.overall_message || 'Generating market insights...'}</p>
-        )}
-      </div>
+      
     </div>
   </div>
 )}
