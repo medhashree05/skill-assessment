@@ -1388,7 +1388,7 @@ Generate personalized insights in this EXACT JSON format without any additional 
 """
 
         try:
-            response = groq_client_2.chat.completions.create(
+            response = groq_client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": "You are an expert skill assessor. Return only valid JSON responses without any additional text or formatting."},
