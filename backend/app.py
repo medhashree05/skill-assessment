@@ -41,6 +41,7 @@ app.add_middleware(
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 gemini_model = genai.GenerativeModel("gemini-2.5-pro")
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+groq_client_2 = Groq(api_key=os.getenv("GROQ_API_KEY_2"))
 
 def load_questions():
     df = pd.read_csv("Assessment_chat_v2.csv")
@@ -594,7 +595,7 @@ class PeerBenchmarkRequest(BaseModel):
 
 @app.post("/generate_peer_benchmark")
 def generate_peer_benchmark(req: PeerBenchmarkRequest):
-    """Generate peer benchmark and in-demand traits analysis report using Gemini"""
+    """Generate peer benchmark and in-demand traits analysis report using groq_client_2"""
 
     prompt = f"""
 ## ROLE
@@ -656,19 +657,46 @@ Return ONLY valid JSON in this format:
         }
 
     try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
+        response = groq_client_2.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert skill assessor. Return only valid JSON responses without any additional text or formatting."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=1000,
+            top_p=1,
+            stream=False
+        )
+
+        raw_text = response.choices[0].message.content.strip()
+        print("Raw Groq peer benchmark response:", raw_text)
+
+        # Clean markdown JSON fences if present
         clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
-        parsed = json.loads(clean_text)
 
-        if "peer_benchmark" not in parsed:
-            raise ValueError("Missing 'peer_benchmark' key")
+        json_data = json.loads(clean_text)
 
-        return parsed
+        if "peer_benchmark" not in json_data:
+            raise HTTPException(status_code=500, detail="Response missing 'peer_benchmark' key")
+
+        return json_data
+
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] JSON decode error: {e}")
+        print(f"Raw response: {raw_text}")
+        return fallback_response()
 
     except Exception as e:
-        print(f"[ERROR] Gemini peer benchmark failure: {str(e)}")
+        print(f"[ERROR] Groq API error: {e}")
         return fallback_response()
+
 
 class ActionPlanRequest(BaseModel):
     user_data: UserProfile
@@ -1225,7 +1253,7 @@ class GrowthOpportunitiesRequest(BaseModel):
 @app.post("/generate_growth_opportunities")
 def generate_growth_opportunities(req: GrowthOpportunitiesRequest):
     """
-    Generate 3–4 personalized growth opportunities using Gemini
+    Generate 3–4 personalized growth opportunities using Groq
     """
     prompt = f"""
 ## ROLE
@@ -1280,8 +1308,21 @@ Experience Level: {req.user_profile.exp_level}
     }
 
     try:
-        response = gemini_model.generate_content(prompt)
-        raw_text = response.text.strip()
+        response = groq_client_2.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "You are an expert skill assessor. Return only valid JSON responses without any additional text or formatting."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=1000,
+            top_p=1,
+            stream=False
+        )
+
+        raw_text = response.choices[0].message.content.strip()
+        print("Raw Groq response:", raw_text)
+
         clean = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
         parsed = json.loads(clean)
 
@@ -1347,12 +1388,24 @@ Generate personalized insights in this EXACT JSON format without any additional 
 """
 
         try:
-            response = gemini_model.generate_content(prompt)
-            raw = response.text.strip()
+            response = groq_client_2.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": "You are an expert skill assessor. Return only valid JSON responses without any additional text or formatting."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=800,
+                top_p=1,
+                stream=False
+            )
+
+            raw = response.choices[0].message.content.strip()
+            print(f"Raw Groq response for {category}:", raw)
+
             clean = re.sub(r"^```json\s*|```$", "", raw, flags=re.DOTALL).strip()
             parsed = json.loads(clean)
 
-            # Basic validation
             if not all(k in parsed for k in [
                 "mentor_insight", "score_context", "immediate_step",
                 "weekly_focus", "career_impact", "encouragement"
@@ -1363,7 +1416,6 @@ Generate personalized insights in this EXACT JSON format without any additional 
 
         except Exception as e:
             print(f"[ERROR] Mentor insight fallback for {category}: {str(e)}")
-
             insights[category] = {
                 "mentor_insight": f"💬 Focus on improving your {category} skills",
                 "score_context": f"🎯 Your score: {user_score:.1f}% | Benchmark: {benchmark}%",

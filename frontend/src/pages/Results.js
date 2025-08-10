@@ -180,6 +180,7 @@ function Results() {
         career_goal: userProfile.careerGoals || userProfile.aspiration || ""
       }
     };
+     const startTime = performance.now();
 
     try {
       const response = await fetch("https://skill-assessment-n1dm.onrender.com/generate_tooltips", {
@@ -196,6 +197,8 @@ function Results() {
 
 
       const data = await response.json();
+      const endTime = performance.now();
+      console.log(`✅ [Tooltip] ${category} - Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log(data);
       return data;
     } catch (err) {
@@ -312,7 +315,7 @@ function Results() {
       benchmark_scores: formattedBenchmarks,
       tier: getTierLabel(avgScore) // Send tier from frontend
     };
-
+    const startTime = performance.now();
     try {
       const response = await fetch(
         "https://skill-assessment-n1dm.onrender.com/generate_growth_projection",
@@ -330,6 +333,8 @@ function Results() {
       }
 
       const data = await response.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("📈 Growth Projection:", data);
       setGrowthProjection(data);
     } catch (error) {
@@ -404,7 +409,7 @@ function Results() {
       benchmark_scores,
       tier: getTierLabel(avgScore) // Send tier here
     };
-
+    const startTime = performance.now();
     try {
       const response = await fetch(
         "https://skill-assessment-n1dm.onrender.com/generate_market_analysis",
@@ -425,6 +430,8 @@ function Results() {
       }
 
       const data = await response.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("📊 Market Analysis:", data);
       setMarketAnalysis(data);
     } catch (error) {
@@ -484,7 +491,7 @@ useEffect(() => {
       weak_categories: barChartData.filter(item => item.value < 50).map(item => item.label),
       benchmarks
     };
-
+    const startTime = performance.now();
     try {
       const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_peer_benchmark", {
         method: "POST",
@@ -495,6 +502,8 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("peer benchmark ",data)
       setPeerBenchmark(data);
     } catch (err) {
@@ -621,7 +630,7 @@ useEffect(() => {
       weak_categories: weakCategories,
       market_benchmarks: marketBenchmarks
     };
-
+    const startTime= performance.now();
     try {
       const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_action_plan", {
         method: "POST",
@@ -632,10 +641,11 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
-      
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       const parsedActionPlan = parseRoadmapText(data.roadmap_text);
-  setActionPlan(parsedActionPlan);
-  console.log("action plan", parsedActionPlan);
+    setActionPlan(parsedActionPlan);
+    console.log("action plan", parsedActionPlan);
 
       
     } catch (err) {
@@ -711,7 +721,7 @@ useEffect(() => {
 }
 
     };
-
+    const startTime = performance.now();
     try {
       const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_growth_sources", {
         method: "POST",
@@ -722,6 +732,8 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("growth resources",data)
       setGrowthSources(data.sources);
     } catch (err) {
@@ -742,7 +754,7 @@ useEffect(() => {
     momentumFetched.current = true;
     setLoadingMomentum(true);
     setMomentumError(null);
-
+    const startTime= performance.now();
     try {
       const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_momentum_toolkit", {
         method: "POST",
@@ -752,6 +764,8 @@ useEffect(() => {
       if (!res.ok) throw new Error(await res.text());
 
       const data = await res.json();
+      const endTime = performance.now();
+      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
       console.log("tool kit",data)
       setMomentumToolkit(data.momentum_toolkit);
     } catch (err) {
