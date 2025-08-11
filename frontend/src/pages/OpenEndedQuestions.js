@@ -51,7 +51,7 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
   useEffect(() => {
     if (hasFetchedQuestions) return;
     async function fetchOpenEndedQuestions() {
-      startTime = performance.now();
+      const startTime = performance.now();
       try {
         
         const payload = mapToBackendPayload(userInfo, categoryScores);
@@ -69,7 +69,7 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
         }
 
         const data = await response.json();
-        endTime = performance.now();
+        const endTime = performance.now();
         console.log(`Open ended questions time taken : ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
         if (!data.questions) {
           throw new Error("API response missing 'questions' array");
@@ -120,7 +120,7 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
 
     answers
   };
-  startTime = performance.now();
+  const startTime = performance.now();
   const response = await fetch('https://skill-assessment-n1dm.onrender.com/score_open_ended_responses', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -134,7 +134,7 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
   }
 
   const data = await response.json();
-   endTime = performance.now();
+   const endTime = performance.now();
         console.log(`Scores time taken : ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
   if (!data.scores) throw new Error("Response missing 'scores' key");
 
