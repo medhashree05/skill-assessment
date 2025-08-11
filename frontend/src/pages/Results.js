@@ -1507,25 +1507,32 @@ useEffect(() => {
   </div>
 
   <div class="insights-section">
-    ${
-      Object.entries(mentorInsights).map(([category, insight]) => `
-        <div class="insight-card">
-          <div class="insight-header">
-            <span>📘</span>
-            <h4>${category}</h4>
+  ${
+    mentorInsights && Object.keys(mentorInsights).length > 0
+      ? Object.entries(mentorInsights).map(([category, insight]) => `
+          <div class="insight-card">
+            <div class="insight-header">
+              <span>📘</span>
+              <h4>${category}</h4>
+            </div>
+            <div class="insight-text">
+              <p>${insight.mentor_insight}</p>
+              <p>${insight.score_context}</p>
+              <p>${insight.immediate_step}</p>
+              <p>${insight.weekly_focus}</p>
+              <p>${insight.career_impact}</p>
+              <p>${insight.encouragement}</p>
+            </div>
           </div>
-          <div class="insight-text">
-            <p>${insight.mentor_insight}</p>
-            <p>${insight.score_context}</p>
-            <p>${insight.immediate_step}</p>
-            <p>${insight.weekly_focus}</p>
-            <p>${insight.career_impact}</p>
-            <p>${insight.encouragement}</p>
+        `).join('')
+      : `
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading mentor insights...</p>
           </div>
-        </div>
-      `).join('')  
-    }
-  </div>
+        `
+  }
+</div>
 </div>
 
 

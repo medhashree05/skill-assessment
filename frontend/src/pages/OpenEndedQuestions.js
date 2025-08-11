@@ -6,7 +6,13 @@ function OpenEndedQuestions() {
   const location = useLocation();
   const navigate = useNavigate(); 
 const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
-
+const [submitting, setSubmitting] = useState(false);
+const handleSubmitClick = async () => {
+  if (submitting) return; // prevent double clicks
+  setSubmitting(true);
+  await handleSubmit();
+  setSubmitting(false);
+};
   const userInfo = location.state?.userInfo || {};
     
   const {
@@ -194,12 +200,22 @@ const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
       ))}
 
       {openEndedQuestions.length > 0 && (
-        <div className="submit-section">
-          <button onClick={handleSubmit} className="submit-button">
-            ✓ Complete Assessment
-          </button>
-        </div>
+  <div className="submit-section">
+    <button
+      onClick={handleSubmitClick}
+      className="submit-button"
+      disabled={submitting}
+    >
+      {submitting ? (
+        <>
+          <span className="spinner"></span> Submitting...
+        </>
+      ) : (
+        "✓ Complete Assessment"
       )}
+    </button>
+  </div>
+)}
     </div>
   );
 }

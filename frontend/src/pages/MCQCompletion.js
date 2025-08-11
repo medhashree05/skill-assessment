@@ -1,4 +1,4 @@
-import React from 'react';
+import {React,useState} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import './MCQCompletion.css';
 
@@ -7,6 +7,13 @@ function MCQCompletion() {
   const location = useLocation();
   const questions = location.state?.questions || [];
   const userInfo = location.state?.userInfo || {};
+  const [proceeding, setProceeding] = useState(false);
+  const handleProceedClick = async () => {
+  if (proceeding) return; // prevent double clicks
+  setProceeding(true);
+  await handleProceedToOpenEnded();
+  setProceeding(false);
+};
   
   const {
   answers = {},
@@ -102,16 +109,23 @@ const handleProceedToOpenEnded = async () => {
             </div>
 
             <div className="action-section">
-              <button 
-                onClick={handleProceedToOpenEnded}
-                className="proceed-button"
-              >
-                → Proceed to Open-Ended Questions
-              </button>
-              <p className="action-subtitle">
-                Take your time to provide thoughtful answers
-              </p>
-            </div>
+  <button
+    onClick={handleProceedClick}
+    className="proceed-button"
+    disabled={proceeding}
+  >
+    {proceeding ? (
+      <>
+        <span className="spinner"></span> Loading...
+      </>
+    ) : (
+      "→ Proceed to Open-Ended Questions"
+    )}
+  </button>
+  <p className="action-subtitle">
+    Take your time to provide thoughtful answers
+  </p>
+</div>
           </div>
         </div>
       </div>

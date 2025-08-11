@@ -9,6 +9,24 @@
   border-radius: 12px;
   font-family: 'Segoe UI', sans-serif;
 }
+.submit-button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.spinner {
+  border: 3px solid #eee;
+  border-top: 3px solid #7b62f8;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
 .title {
   font-size: 28px;
