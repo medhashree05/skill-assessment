@@ -80,7 +80,7 @@ def root():
 @app.post("/generate_open_ended_questions")
 def generate_open_ended_questions(req: OpenEndedRequest):
     prompt = f"""
-You are an expert skill assessor tasked with generating 3 personalized open-ended questions that cover the following 5 core skill categories:
+You are an expert skill assessor tasked with generating 1 personalized open-ended question that covers the following 5 core skill categories:
 
 1. Cognitive & Creative Skills  
 2. Work & Professional Behavior  
@@ -89,11 +89,10 @@ You are an expert skill assessor tasked with generating 3 personalized open-ende
 5. Family & Relationships
 
 Instructions:
-- Use the user's profile and their MCQ performance to generate *3 diverse, personalized, open-ended questions* that cover all 5 categories collectively (at least once per category across the 3).
-- Each question should be mapped to a *primary category* and optionally *secondary categories*.
+- Use the user's profile and their MCQ performance to generate *1 diverse, personalized, open-ended question* that covers all 5 categories collectively (at least once per category ).
+- The question should be mapped to a *primary category* and optionally *secondary categories*.
 - Prioritize weaker-scoring categories from the MCQs when assigning primary categories.
-- Avoid redundant or overly similar questions.
-- Questions should be clear, real-world oriented, and require a reflective response.
+- Question should be clear, real-world oriented, and require a reflective response.
 
 User Profile:
 - Age: {req.user_profile.age}
@@ -118,16 +117,6 @@ Return ONLY in the following JSON format:
       "question": "Describe a time you had to resolve a misunderstanding with a family member.",
       "primary_category": "Family & Relationships",
       "secondary_categories": ["Emotional & Social Competence"]
-    }},
-    {{
-      "question": "How do you approach learning new concepts or tools when faced with a challenge at work or school?",
-      "primary_category": "Learning & Self Management",
-      "secondary_categories": ["Cognitive & Creative Skills", "Work & Professional Behavior"]
-    }},
-    {{
-      "question": "Tell us about a time when your creativity helped solve a complex problem.",
-      "primary_category": "Cognitive & Creative Skills",
-      "secondary_categories": ["Work & Professional Behavior"]
     }}
   ]
 }}
@@ -385,59 +374,47 @@ class GrowthProjectionRequest(BaseModel):
     user_data: UserProfile
     user_scores: Dict[str, float]
     benchmark_scores: Dict[str, float]
-    tier: str  # NEW: tier provided directly by request
+    tier: str  
 
 
 @app.post("/generate_growth_projection")
 def generate_growth_projection(req: GrowthProjectionRequest):
-    """AI-Driven Career Growth Projection Generator using Groq"""
+    """Career Growth Projection Generator – points calculated locally, steps from LLM"""
 
+   
     avg_score = sum(req.user_scores.values()) / len(req.user_scores) if req.user_scores else 0
 
+    
+    growth_projection = {
+        "current_score": round(avg_score, 1),
+        "3_months": round(avg_score * 1.05, 1),   
+        "6_months": round(avg_score * 1.10, 1),   
+        "12_months": round(avg_score * 1.15, 1), 
+        "peer_percentile": round(
+            min(99, max(1, (avg_score / max(req.benchmark_scores.values() or [100])) * 100)),
+            1
+        ),
+        "tier": req.tier
+    }
+
+   
     prompt = f"""
 ## ROLE
-You are an expert career analyst generating growth projections for professionals.
-Profile:
-- Name: {req.user_data.name}
-- Education: {req.user_data.education_level}
-- Experience: {req.user_data.exp_level}
-- Domain: {req.user_data.domain}
-- Career Goal: {req.user_data.career_goal}
-    
-Assessment Data:
-- User Scores (0-100 scale): {json.dumps(req.user_scores)}
-- Market Benchmarks (0-100 scale): {json.dumps(req.benchmark_scores)}
-- Tier: {req.tier}
+You are an expert career coach. Generate exactly 3 actionable steps.
 
-### TASKS:
-1. Calculate the following strictly using reasoning:
-   - Current Score (average of user scores)
-   - Projected Scores (3, 6, 12 months) assuming realistic growth if user follows best practices
-   - Peer Percentile (estimated relative to benchmarks, 1–99%)
+## USER PROFILE
+Name: {req.user_data.name}
+Education: {req.user_data.education_level}
+Experience: {req.user_data.exp_level}
+Domain: {req.user_data.domain}
+Career Goal: {req.user_data.career_goal}
 
-2. Write a **3-sentence motivational summary**:
-   - Highlight weakest skill categories
-   - Show connection to their career goal
-   - Encourage percentile growth
-
-3. Suggest **exactly 3 actionable steps** (max 15 words each):
-   - Be measurable, specific, and role-relevant
-   - Use strong action verbs (Complete, Practice, Build, Analyze, Join)
-
-### RULES:
-- DO NOT make up random numbers—base projections logically on score gaps vs benchmarks.
-- Use realistic, human-like advice (no generic statements).
-- Respond ONLY in this JSON structure:
+## RULES
+- Max 15 words per step
+- Measurable, specific, and relevant to the domain
+- Use strong action verbs
+- Return only valid JSON:
 {{
-  "growth_projection": {{
-    "current_score": {avg_score:.1f},
-    "3_months": <float>,
-    "6_months": <float>,
-    "12_months": <float>,
-    "peer_percentile": <float>,
-    "tier": "{req.tier}"
-  }},
-  "growth_summary": "Your 3-sentence motivational text here.",
   "action_steps": [
     "Step 1 here",
     "Step 2 here",
@@ -449,37 +426,31 @@ Assessment Data:
     try:
         json_data, raw_text = make_groq_request(
             prompt,
-            "You are an expert career analyst. Return only valid JSON responses without any additional text or formatting.",
-            max_tokens=1500
+            "You are an expert career analyst. Return only valid JSON.",
+            max_tokens=300
         )
-        print("Raw Groq growth response:", raw_text)
+        print("Raw Groq action steps response:", raw_text)
 
-        if "growth_projection" not in json_data:
-            raise ValueError("Missing 'growth_projection' in response")
+        action_steps = json_data.get("action_steps", [])
 
-        return json_data
+        return {
+            "growth_projection": growth_projection,
+            "action_steps": action_steps
+        }
 
     except Exception as e:
-        print(f"[ERROR] Groq growth projection failed: {str(e)}")
+        print(f"[ERROR] Groq action steps generation failed: {str(e)}")
 
-        # Fallback response
-        current_score = avg_score
+        
         return {
-            "growth_projection": {
-                "current_score": round(current_score, 1),
-                "3_months": round(current_score * 1.05, 1),
-                "6_months": round(current_score * 1.10, 1),
-                "12_months": round(current_score * 1.15, 1),
-                "peer_percentile": 60.0,
-                "tier": req.tier
-            },
-            "growth_summary": "Focus on closing key gaps to accelerate toward your career target. You're on track!",
+            "growth_projection": growth_projection,
             "action_steps": [
                 "Complete 1 hands-on project this month",
                 "Practice weekly domain-specific challenges",
                 "Join 1 professional community for peer learning"
             ]
         }
+
 
     
 
@@ -532,7 +503,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
 {', '.join([f"{cat}: {val}%" for cat, val in benchmark_scores.items()])}
 
 ### INSTRUCTIONS
-1. Return each section as 3–4 short bullet points.
+1. Return each section as 1–2 short bullet points.
 2. Tone: supportive but *realistic* and *frank* — don't overhype low scores.
 3. If the percentile is low, acknowledge it directly and suggest improvement.
 4. Be second-person (e.g., "You have shown…"). Avoid long paragraphs.
@@ -649,10 +620,10 @@ Your goal: Generate **highly personalized, market-aligned insights** that compar
    - Justify percentile using **peer performance trends or aggregated test-taker data**.
 
 2. **Peer Benchmark Narrative**  
-   - Write **2 engaging sentences** comparing the user to typical peers, highlighting both competitive edges and gaps.
+   - Write **1 engaging sentence** comparing the user to typical peers, highlighting both competitive edges and gaps.
 
 3. **In-Demand Traits Mapping**  
-   - Map **3 in-demand traits** (from current job market, internships, or hiring trends) to the user's strongest/weakest areas.  
+   - Map **2 in-demand traits** (from current job market, internships, or hiring trends) to the user's strongest/weakest areas.  
    - Be **specific** (e.g., "Your high score in Work Behavior aligns with demand for reliable agile team contributors").
 
 Return ONLY valid JSON in this format:
@@ -662,8 +633,7 @@ Return ONLY valid JSON in this format:
     "narrative": "Your performance outpaces many peers in problem-solving, but lags in communication skills.",
     "in_demand_traits": [
       "Strong analytical thinking aligns with current hiring demand for data-driven roles",
-      "Moderate teamwork scores limit opportunities in agile-based internships",
-      "High learning agility matches rapid tech adoption trends in AI startups"
+      "Moderate teamwork scores limit opportunities in agile-based internships"
     ]
   }}
 }}
@@ -676,8 +646,7 @@ Return ONLY valid JSON in this format:
                 "narrative": "Your skills are competitive in your domain with strengths in key areas.",
                 "in_demand_traits": [
                     "Technical proficiency matches industry requirements",
-                    "Leadership skills align with management expectations",
-                    "Strategic thinking could be improved for senior roles"
+                    "Leadership skills align with management expectations"
                 ]
             }
         }

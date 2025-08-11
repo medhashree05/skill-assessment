@@ -1500,40 +1500,7 @@ useEffect(() => {
                     `).join('')}
                 </div>
             </div>
-           <div class="section">
-  <div class="section-header">
-    <span>💡</span>
-    <h2>Personalized Mentor Insights</h2>
-  </div>
-
-  <div class="insights-section">
-  ${
-    mentorInsights && Object.keys(mentorInsights).length > 0
-      ? Object.entries(mentorInsights).map(([category, insight]) => `
-          <div class="insight-card">
-            <div class="insight-header">
-              <span>📘</span>
-              <h4>${category}</h4>
-            </div>
-            <div class="insight-text">
-              <p>${insight.mentor_insight}</p>
-              <p>${insight.score_context}</p>
-              <p>${insight.immediate_step}</p>
-              <p>${insight.weekly_focus}</p>
-              <p>${insight.career_impact}</p>
-              <p>${insight.encouragement}</p>
-            </div>
-          </div>
-        `).join('')
-      : `
-          <div class="loading-state">
-            <div class="spinner"></div>
-            <p>Loading mentor insights...</p>
-          </div>
-        `
-  }
-</div>
-</div>
+          
 
 
 
@@ -2013,7 +1980,7 @@ useEffect(() => {
   </div>
 )}
 
-{/* Loading state */}
+
 {loadingMarketAnalysis && (
   <div className="analysis-card">
     <div className="card-header">
@@ -2025,17 +1992,7 @@ useEffect(() => {
   </div>
 )}
 
-{/* Error state */}
-{marketAnalysisError && (
-  <div className="analysis-card">
-    <div className="card-header">
-      <span className="card-icon">⚠️</span>
-      <h3>Market Position Analysis</h3>
-      <p>Unable to load market analysis</p>
-    </div>
-    <div className="error-message">{marketAnalysisError}</div>
-  </div>
-)}
+
 
       </div>
 
