@@ -507,7 +507,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
 2. Tone: supportive but *realistic* and *frank* — don't overhype low scores.
 3. If the percentile is low, acknowledge it directly and suggest improvement.
 4. Be second-person (e.g., "You have shown…"). Avoid long paragraphs.
-5. Label the tier, experience, percentile, salary, and give overall feedback.
+5. Label the tier, experience, salary, and give overall feedback.
 
 ### OUTPUT JSON FORMAT:
 {{
@@ -517,10 +517,6 @@ As a senior AI career strategist, generate an honest, constructive market positi
   }},
   "experience": {{
     "label": "Estimated experience range",
-    "bullets": ["...", "..."]
-  }},
-  "percentile": {{
-    "label": "Percentile vs peers",
     "bullets": ["...", "..."]
   }},
   "salary": {{
@@ -546,13 +542,6 @@ As a senior AI career strategist, generate an honest, constructive market positi
                 "bullets": [
                     "Your profile aligns with entry-level or fresher roles.",
                     "Building confidence and consistency is key at this stage."
-                ]
-            },
-            "percentile": {
-                "label": f"Ahead of {percentile:.1f}% of peers",
-                "bullets": [
-                    f"You currently outperform {percentile:.1f}% of assessed peers.",
-                    "There's strong potential to grow with focused effort."
                 ]
             },
             "salary": {

@@ -1501,11 +1501,6 @@ useEffect(() => {
                 </div>
             </div>
           
-
-
-
-           
-
     <div class="section">
   <div class="section-header">
     <span>📊</span>
@@ -1947,7 +1942,7 @@ useEffect(() => {
         <span className="position-icon">📝</span>
         <div className="position-info">
           <span className="position-title">{marketAnalysis.tier?.label || 'Position Pending'}</span>
-          <span className="position-desc">{marketAnalysis.tier?.description || 'Analysis in progress'}</span>
+          <span className="position-desc">{marketAnalysis.tier?.bullets || 'Analysis in progress'}</span>
         </div>
       </div>
 
