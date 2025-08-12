@@ -42,6 +42,8 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 gemini_model = genai.GenerativeModel("gemini-2.5-pro")
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 groq_client_2 = Groq(api_key=os.getenv("GROQ_API_KEY_2"))
+groq_client_3 = Groq(api_key=os.getenv("GROQ_API_KEY_3"))
+groq_client_4 = Groq(api_key=os.getenv("GROQ_API_KEY__4"))
 
 def load_questions():
     df = pd.read_csv("Assessment_chat_v2.csv")
@@ -124,7 +126,7 @@ Only return valid JSON. Do not include anything else.
     """
     try:
         
-        response = groq_client_2.chat.completions.create(
+        response = groq_client_3.chat.completions.create(
             model="llama-3.3-70b-versatile", 
             messages=[
                 {
@@ -192,6 +194,8 @@ def make_groq_request(prompt: str, system_message: str = "You are a helpful AI a
     except Exception as e:
         print(f"Groq API error: {e}")
         raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+    
+
 def make_groq_request_2(prompt: str, system_message: str = "You are a helpful AI assistant. Return only valid JSON responses without any additional text or formatting.", max_tokens: int = 1500, temperature: float = 0.7):
     """Helper function to make Groq API requests with consistent error handling"""
     try:
@@ -219,6 +223,33 @@ def make_groq_request_2(prompt: str, system_message: str = "You are a helpful AI
         print(f"Groq API error: {e}")
         raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
 
+def make_groq_request(prompt: str, system_message: str = "You are a helpful AI assistant. Return only valid JSON responses without any additional text or formatting.", max_tokens: int = 1500, temperature: float = 0.7):
+    """Helper function to make Groq API requests with consistent error handling"""
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=1,
+            stream=False,
+            stop=None
+        )
+        
+        raw_text = response.choices[0].message.content.strip()
+        clean_text = re.sub(r"^```json\s*|```$", "", raw_text, flags=re.DOTALL).strip()
+        return json.loads(clean_text), raw_text
+        
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to parse JSON from Groq API response")
+    except Exception as e:
+        print(f"Groq API error: {e}")
+        raise HTTPException(status_code=500, detail=f"Groq API error: {e}")
+    
 class OpenEndedAnswer(BaseModel):
     question: str
     answer: str
@@ -424,7 +455,7 @@ Career Goal: {req.user_data.career_goal}
 """
 
     try:
-        json_data, raw_text = make_groq_request(
+        json_data, raw_text = make_groq_request_2(
             prompt,
             "You are an expert career analyst. Return only valid JSON.",
             max_tokens=300
@@ -556,7 +587,7 @@ As a senior AI career strategist, generate an honest, constructive market positi
 
     # Groq integration
     try:
-        json_data, raw_text = make_groq_request_2(MARKET_ANALYSIS_PROMPT, "You are a senior AI career strategist. Return only valid JSON responses without any additional text or formatting.", max_tokens=2000)
+        json_data, raw_text = make_groq_request_3(MARKET_ANALYSIS_PROMPT, "You are a senior AI career strategist. Return only valid JSON responses without any additional text or formatting.", max_tokens=2000)
         print("Raw Groq market analysis response:", raw_text)
 
         required_keys = ["tier", "experience", "percentile", "salary", "overall_message"]
@@ -641,7 +672,7 @@ Return ONLY valid JSON in this format:
         }
 
     try:
-        response = groq_client.chat.completions.create(
+        response = groq_client_4.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
                 {
@@ -1372,7 +1403,7 @@ Generate personalized insights in this EXACT JSON format without any additional 
 """
 
         try:
-            response = groq_client_2.chat.completions.create(
+            response = groq_client_3.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[
                     {"role": "system", "content": "You are an expert skill assessor. Return only valid JSON responses without any additional text or formatting."},

@@ -8,11 +8,23 @@ function OpenEndedQuestions() {
 const [hasFetchedQuestions, setHasFetchedQuestions] = useState(false);
 const [submitting, setSubmitting] = useState(false);
 const handleSubmitClick = async () => {
-  if (submitting) return; // prevent double clicks
+  if (submitting) return;
+
+  // Check minimum 100 words for each question
+  for (let i = 0; i < openEndedQuestions.length; i++) {
+    const answer = responses[`q${i + 1}`] || '';
+    const wordCount = answer.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount < 100) {
+      alert(`Question ${i + 1} requires at least 100 words. You have written ${wordCount} words.`);
+      return; // Stop submission if any question fails
+    }
+  }
+
   setSubmitting(true);
   await handleSubmit();
   setSubmitting(false);
 };
+
   const userInfo = location.state?.userInfo || {};
     
   const {
