@@ -94,7 +94,14 @@ function Results() {
   const [mentorInsightsError, setMentorInsightsError] = useState(null);
 
 
+  const [countdown, setCountdown] = useState(5);
 
+   useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
   const calculatedData = useMemo(() => {
     const openEndedCategoryScores = {};
     openEndedScores.forEach(scoreObj => {
@@ -840,77 +847,6 @@ useEffect(() => {
 
   fetchGrowthOpportunities();
 }, [userInfo, barChartData]);
-
-useEffect(() => {
-  const fetchMentorInsights = async () => {
-    if (
-      mentorInsightsFetched.current ||
-      !userInfo ||
-      barChartData.length === 0
-    ) return;
-
-    mentorInsightsFetched.current = true;
-    setLoadingMentorInsights(true);
-    setMentorInsightsError(null);
-
-    const mcqScores = {};
-    const openScores = {};
-    const benchmarks = {};
-    const categories = [];
-
-    barChartData.forEach(item => {
-      const label = item.label;
-      mcqScores[label] = categoryScores[label] || 0;
-      openScores[label] = calculatedData.openEndedCategoryAverages[label] || 0;
-      benchmarks[label] = item.market || 65;
-      categories.push(label);
-    });
-
-    const payload = {
-      user_data: {
-        name: userInfo.fullName || "Anonymous",
-        age: Number(userInfo.age) || 0,
-        education_level: userInfo.educationLevel || "",
-        field: userInfo.field || "",
-        domain: userInfo.domain || userInfo.field || "General",
-        exp_level: userInfo.experienceLevel || "Beginner",
-        interests: userInfo.hobbies
-          ? userInfo.hobbies.split(',').map(s => s.trim())
-          : (userInfo.interests || []),
-        career_goal: userInfo.careerGoals || userInfo.aspiration || ""
-      },
-      mcq_scores: mcqScores,
-      open_scores: openScores,
-      benchmarks,
-      categories
-    };
-    const startTime = performance.now();
-    try {
-      const res = await fetch("https://skill-assessment-n1dm.onrender.com/generate_mentor_insights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-
-      const data = await res.json();
-      const endTime = performance.now();
-      console.log(`✅  Finished in ${(endTime - startTime).toFixed(2)} ms ...endtime is ${endTime}`);
-      console.log("Mentor insights:", data);
-      setMentorInsights(data.mentor_insights);
-    } catch (err) {
-      console.error("Mentor Insights error:", err);
-      setMentorInsightsError("Failed to fetch mentor insights");
-    } finally {
-      setLoadingMentorInsights(false);
-    }
-  };
-
-  fetchMentorInsights();
-}, [userInfo, barChartData]);
-
-
 
 
   // Helper functions (memoized to prevent recreation on every render)
@@ -1992,13 +1928,20 @@ useEffect(() => {
       </div>
 
       <div className="action-buttons">
-        <button className="retake-btn" onClick={handleRetakeAssessment}>
-          🔄 Retake Assessment
-        </button>
-        <button className="download-btn" onClick={handleDownloadReport}>
-          ↓ Download Complete Report
-        </button>
-      </div>
+  <button className="retake-btn" onClick={handleRetakeAssessment}>
+    🔄 Retake Assessment
+  </button>
+
+  <button
+    className="download-btn"
+    onClick={handleDownloadReport}
+    disabled={countdown > 0}
+  >
+    {countdown > 0
+      ? `↓ Download Complete Report (${countdown})`
+      : "↓ Download Complete Report"}
+  </button>
+</div>
     </div>
   );
 }
