@@ -206,7 +206,7 @@ const handleSubmitClick = async () => {
             name={`q${index + 1}`}
             value={responses[`q${index + 1}`] || ''}
             onChange={handleChange}
-            placeholder="Share your thoughts here... (minimum 50 words recommended)"
+            placeholder="Share your thoughts here... (minimum 100 words required)"
           />
         </div>
       ))}

@@ -1933,14 +1933,14 @@ useEffect(() => {
   </button>
 
   <button
-    className="download-btn"
-    onClick={handleDownloadReport}
-    disabled={countdown > 0}
-  >
-    {countdown > 0
-      ? `↓ Download Complete Report (${countdown})`
-      : "↓ Download Complete Report"}
-  </button>
+  className={`download-btn ${countdown > 0 ? "disabled" : ""}`}
+  onClick={handleDownloadReport}
+  disabled={countdown > 0}
+>
+  {countdown > 0
+    ? `↓ Download Complete Report (${countdown})`
+    : "↓ Download Complete Report"}
+</button>
 </div>
     </div>
   );

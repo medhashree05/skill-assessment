@@ -824,6 +824,13 @@
   margin-bottom: 0.25rem;
 }
 
+.download-btn.disabled {
+  pointer-events: none;  /* ❌ Can't hover or click */
+  opacity: 0.6;          /* Looks inactive */
+  cursor: not-allowed;   /* Show blocked cursor */
+}
+
+
 .salary-desc {
   font-size: 0.85rem;
   color: #6b7280;
